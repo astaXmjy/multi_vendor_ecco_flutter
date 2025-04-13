@@ -1,7 +1,8 @@
-import 'package:anu_app/main.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../api/services/auth_service.dart';
+import 'address_form_page.dart';
 
 class CreateAccountPage extends StatefulWidget {
   const CreateAccountPage({Key? key}) : super(key: key);
@@ -17,6 +18,11 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
+  final _authService = AuthService();
+  bool _isLoading = false;
+  String? _errorMessage;
+  Map<String, dynamic>? _fieldErrors;
 
   DateTime? _selectedDate;
   String _selectedGender = 'Male';
@@ -60,6 +66,60 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
+      });
+    }
+  }
+
+  Future<void> _handleRegistration() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _fieldErrors = null;
+    });
+
+    final userData = {
+      'email': _emailController.text.trim(),
+      'phone': _phoneController.text.trim(),
+      'full_name': _fullNameController.text.trim(),
+      'password': _passwordController.text,
+      'confirm_password': _confirmPasswordController.text,
+    };
+
+    try {
+      final result = await _authService.register(userData);
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (result['success']) {
+        // Registration successful, navigate to address form
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddressFormPage(
+                fullName: _fullNameController.text.trim(),
+                phone: _phoneController.text.trim(),
+              ),
+            ),
+          );
+        }
+      } else {
+        // Handle error response from API
+        setState(() {
+          _errorMessage = result['message'];
+          _fieldErrors = result['errors'];
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'An unexpected error occurred. Please try again.';
       });
     }
   }
@@ -129,11 +189,29 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Display general error message if any
+                            if (_errorMessage != null)
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                margin: const EdgeInsets.only(bottom: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border:
+                                      Border.all(color: Colors.red.shade200),
+                                ),
+                                child: Text(
+                                  _errorMessage!,
+                                  style: TextStyle(color: Colors.red.shade800),
+                                ),
+                              ),
+
                             // Full Name
                             _buildFormLabel('Full Name', true),
                             _buildTextField(
                               controller: _fullNameController,
                               hintText: 'Enter your full name',
+                              fieldName: 'full_name',
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
                                   return 'Please enter your full name';
@@ -149,6 +227,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                             _buildTextField(
                               controller: _emailController,
                               hintText: 'your@email.com',
+                              fieldName: 'email',
                               keyboardType: TextInputType.emailAddress,
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
@@ -169,6 +248,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                             _buildTextField(
                               controller: _phoneController,
                               hintText: 'Enter your phone number',
+                              fieldName: 'phone',
                               keyboardType: TextInputType.phone,
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
@@ -279,6 +359,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                             _buildTextField(
                               controller: _passwordController,
                               hintText: 'Create a password',
+                              fieldName: 'password',
                               obscureText: _obscurePassword,
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -311,6 +392,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                             _buildTextField(
                               controller: _confirmPasswordController,
                               hintText: 'Confirm your password',
+                              fieldName: 'confirm_password',
                               obscureText: _obscureConfirmPassword,
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -341,21 +423,8 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
 
                             // Create Account button
                             ElevatedButton(
-                              onPressed: () {
-                                if (_formKey.currentState!.validate()) {
-                                  // Handle account creation
-                                  // Add your registration logic here
-                                  print(
-                                      'Full Name: ${_fullNameController.text}');
-                                  print('Email: ${_emailController.text}');
-                                  print('Phone: ${_phoneController.text}');
-                                  print(
-                                      'Date of Birth: ${_selectedDate != null ? DateFormat('yyyy-MM-dd').format(_selectedDate!) : "Not provided"}');
-                                  print('Gender: $_selectedGender');
-                                  print(
-                                      'Password: ${_passwordController.text}');
-                                }
-                              },
+                              onPressed:
+                                  _isLoading ? null : _handleRegistration,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFFF7A2E),
                                 foregroundColor: Colors.white,
@@ -364,10 +433,19 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                              child: const Text(
-                                'Create Account',
-                                style: TextStyle(fontSize: 16),
-                              ),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Create Account',
+                                      style: TextStyle(fontSize: 16),
+                                    ),
                             ),
 
                             const SizedBox(height: 16),
@@ -437,11 +515,22 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
+    required String fieldName,
     TextInputType keyboardType = TextInputType.text,
     bool obscureText = false,
     Widget? suffixIcon,
     String? Function(String?)? validator,
   }) {
+    // Check if there are field-specific errors from the API
+    String? fieldError;
+    if (_fieldErrors != null && _fieldErrors!.containsKey(fieldName)) {
+      if (_fieldErrors![fieldName] is List) {
+        fieldError = (_fieldErrors![fieldName] as List).first.toString();
+      } else if (_fieldErrors![fieldName] is String) {
+        fieldError = _fieldErrors![fieldName];
+      }
+    }
+
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
@@ -469,6 +558,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
           vertical: 14,
         ),
         suffixIcon: suffixIcon,
+        errorText: fieldError,
       ),
       validator: validator,
     );

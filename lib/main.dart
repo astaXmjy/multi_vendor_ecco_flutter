@@ -1,10 +1,13 @@
 // lib/main.dart
+import 'package:anu_app/presentation/pages/categories/combined_categories_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'presentation/pages/auth/login_page.dart';
 import 'presentation/pages/auth/create_account_page.dart';
 import 'presentation/pages/home/home_page.dart';
 import 'presentation/pages/wishlist/wishlist_page.dart';
+import 'providers/category_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -28,6 +31,10 @@ class MyApp extends StatelessWidget {
           builder: (context, state) => const CreateAccountPage(),
         ),
         GoRoute(
+          path: '/address-form',
+          builder: (context, state) => const CreateAccountPage(),
+        ),
+        GoRoute(
           path: '/home',
           builder: (context, state) => const HomePage(),
         ),
@@ -35,50 +42,61 @@ class MyApp extends StatelessWidget {
           path: '/wishlist',
           builder: (context, state) => const WishlistPage(),
         ),
+        GoRoute(
+          path: '/categories',
+          builder: (context, state) => const CombinedCategoriesPage(),
+        ),
       ],
     );
 
-    return MaterialApp.router(
-      title: 'Anugami E-commerce',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: const Color(0xFFFF7A2E),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFF7A2E),
-          primary: const Color(0xFFFF7A2E),
-          secondary: const Color(0xFFFF4947),
-        ),
-        fontFamily: 'Poppins', // If you're using a custom font
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.grey.shade300),
+    // Wrap the app with providers for state management
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CategoryProvider()),
+        // Add other providers here as needed
+      ],
+      child: MaterialApp.router(
+        title: 'Anugami E-commerce',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primaryColor: const Color(0xFFFF7A2E),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFFFF7A2E),
+            primary: const Color(0xFFFF7A2E),
+            secondary: const Color(0xFFFF4947),
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFFFF7A2E)),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF7A2E),
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 50),
-            shape: RoundedRectangleBorder(
+          fontFamily: 'Poppins', // If you're using a custom font
+          inputDecorationTheme: InputDecorationTheme(
+            border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFFF7A2E)),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF7A2E),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
         ),
+        routerConfig: router,
       ),
-      routerConfig: router,
     );
   }
 }

@@ -1,8 +1,6 @@
-import 'package:anu_app/main.dart';
-import 'package:anu_app/presentation/pages/auth/create_account_page.dart';
-import 'package:anu_app/presentation/pages/home/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../api/services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -14,8 +12,11 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authService = AuthService();
+
   bool _obscurePassword = true;
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -25,29 +26,56 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // Method to handle login logic
-  void _handleLogin() {
-    // Prevent multiple simultaneous navigation attempts
-    if (_isLoading) return;
+  Future<void> _handleLogin() async {
+    // Validate form input
+    if (_emailController.text.trim().isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter your email';
+      });
+      return;
+    }
 
+    if (_passwordController.text.isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter your password';
+      });
+      return;
+    }
+
+    // Clear previous errors and show loading
     setState(() {
+      _errorMessage = null;
       _isLoading = true;
     });
 
-    String email = _emailController.text.trim();
-    String password = _passwordController.text;
+    try {
+      // Call the login API
+      final result = await _authService.login(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
 
-    // Simulate a login process (replace with your actual authentication logic)
-    Future.delayed(const Duration(seconds: 1), () {
-      // Ensure we're still in the widget tree before navigating
-      if (!mounted) return;
-
+      // Handle response
+      if (result['success']) {
+        // Login successful
+        if (mounted) {
+          // Navigate to the home page
+          context.go('/home');
+        }
+      } else {
+        // Login failed
+        setState(() {
+          _errorMessage = result['message'];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      // Handle unexpected errors
       setState(() {
+        _errorMessage = 'An unexpected error occurred. Please try again.';
         _isLoading = false;
       });
-
-      // Use GoRouter to navigate to the home page
-      context.go('/home');
-    });
+    }
   }
 
   @override
@@ -113,6 +141,22 @@ class _LoginPageState extends State<LoginPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Display error message if any
+                          if (_errorMessage != null)
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.red.shade200),
+                              ),
+                              child: Text(
+                                _errorMessage!,
+                                style: TextStyle(color: Colors.red.shade800),
+                              ),
+                            ),
+
                           // Email field
                           const Text(
                             'Email',
@@ -234,6 +278,7 @@ class _LoginPageState extends State<LoginPage> {
                                     height: 24,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
+                                      color: Colors.white,
                                     ))
                                 : const Icon(Icons.login_rounded),
                             label: Text(_isLoading ? 'Logging in...' : 'Login'),
