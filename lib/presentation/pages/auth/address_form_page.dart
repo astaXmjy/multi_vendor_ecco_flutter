@@ -1,8 +1,10 @@
 // lib/presentation/pages/auth/address_form_page.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../api/services/auth_service.dart';
 import '../../../core/models/address_model.dart';
+import '../../../providers/user_provider.dart';
 
 class AddressFormPage extends StatefulWidget {
   final String fullName;
@@ -83,6 +85,16 @@ class _AddressFormPageState extends State<AddressFormPage> {
               backgroundColor: Colors.green,
             ),
           );
+
+          // Make sure the user provider has the latest data
+          final userProvider =
+              Provider.of<UserProvider>(context, listen: false);
+          if (!userProvider.isLoggedIn) {
+            final userData = await _authService.getUserData();
+            if (userData != null) {
+              userProvider.setUserData(userData);
+            }
+          }
 
           // Navigate to the home page
           context.go('/home');
@@ -368,6 +380,10 @@ class _AddressFormPageState extends State<AddressFormPage> {
                         onPressed: _isLoading
                             ? null
                             : () {
+                                // Make sure the user provider has the latest data before skipping
+                                Provider.of<UserProvider>(context,
+                                        listen: false)
+                                    .initialize();
                                 // Skip adding address and go straight to home
                                 context.go('/home');
                               },

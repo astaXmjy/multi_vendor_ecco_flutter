@@ -3,18 +3,52 @@ import 'package:anu_app/presentation/pages/categories/combined_categories_page.d
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'dart:developer' as developer;
 import 'presentation/pages/auth/login_page.dart';
 import 'presentation/pages/auth/create_account_page.dart';
 import 'presentation/pages/home/home_page.dart';
 import 'presentation/pages/wishlist/wishlist_page.dart';
 import 'providers/category_provider.dart';
+import 'providers/user_provider.dart';
 
 void main() {
+  // Ensure Flutter is initialized
+  WidgetsFlutterBinding.ensureInitialized();
+
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  // Create a UserProvider instance that we can initialize early
+  final UserProvider _userProvider = UserProvider();
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    try {
+      // Initialize the user provider
+      await _userProvider.initialize();
+      developer.log('MyApp: UserProvider initialized');
+    } catch (e) {
+      developer.log('MyApp: Error initializing UserProvider - $e');
+    } finally {
+      setState(() {
+        _initialized = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,10 +83,30 @@ class MyApp extends StatelessWidget {
       ],
     );
 
+    // Show loading screen until initialized
+    if (!_initialized) {
+      return MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                CircularProgressIndicator(color: Color(0xFFFF7A2E)),
+                SizedBox(height: 16),
+                Text('Initializing...'),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     // Wrap the app with providers for state management
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => CategoryProvider()),
+        // Use the already initialized user provider
+        ChangeNotifierProvider.value(value: _userProvider),
         // Add other providers here as needed
       ],
       child: MaterialApp.router(

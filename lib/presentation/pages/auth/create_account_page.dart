@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../../api/services/auth_service.dart';
+import '../../../providers/user_provider.dart';
 import 'address_form_page.dart';
 
 class CreateAccountPage extends StatefulWidget {
@@ -97,7 +99,26 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       });
 
       if (result['success']) {
-        // Registration successful, navigate to address form
+        // Registration successful
+
+        // Update the UserProvider with the user data
+        if (mounted) {
+          final userProvider =
+              Provider.of<UserProvider>(context, listen: false);
+
+          // If the result includes user data, update the provider
+          if (result['data'] != null && result['data']['user'] != null) {
+            userProvider.setUserData(result['data']['user']);
+          } else {
+            // If user data wasn't included in the registration response, fetch it
+            final userData = await _authService.getUserData();
+            if (userData != null) {
+              userProvider.setUserData(userData);
+            }
+          }
+        }
+
+        // Navigate to address form
         if (mounted) {
           Navigator.push(
             context,

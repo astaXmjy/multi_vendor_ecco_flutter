@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../api/services/auth_service.dart';
+import '../../../providers/user_provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -57,8 +59,22 @@ class _LoginPageState extends State<LoginPage> {
 
       // Handle response
       if (result['success']) {
-        // Login successful
+        // Login successful - Update UserProvider
         if (mounted) {
+          final userProvider =
+              Provider.of<UserProvider>(context, listen: false);
+
+          // If the result includes user data, update the provider
+          if (result['data'] != null && result['data']['user'] != null) {
+            userProvider.setUserData(result['data']['user']);
+          } else {
+            // If user data wasn't included in the login response, fetch it
+            final userData = await _authService.getUserData();
+            if (userData != null) {
+              userProvider.setUserData(userData);
+            }
+          }
+
           // Navigate to the home page
           context.go('/home');
         }
