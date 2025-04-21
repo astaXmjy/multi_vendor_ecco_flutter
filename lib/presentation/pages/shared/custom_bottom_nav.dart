@@ -6,10 +6,10 @@ class CustomBottomNavBar extends StatelessWidget {
   final Function(int)? onTap;
 
   const CustomBottomNavBar({
-    Key? key,
+    super.key,
     required this.currentIndex,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +27,10 @@ class CustomBottomNavBar extends StatelessWidget {
         BottomNavigationBarItem(
           icon: Icon(Icons.category),
           label: 'Categories',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.shopping_cart),
+          label: 'Cart',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.favorite),
@@ -49,9 +53,12 @@ class CustomBottomNavBar extends StatelessWidget {
         context.go('/categories');
         break;
       case 2:
-        context.go('/wishlist');
+        context.go('/cart');
         break;
       case 3:
+        context.go('/wishlist');
+        break;
+      case 4:
         context.go('/profile');
         break;
     }

@@ -1,5 +1,5 @@
 // lib/main.dart
-import 'package:anu_app/presentation/pages/categories/combined_categories_page.dart';
+import 'package:anu_app/presentation/pages/profile/profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -8,8 +8,10 @@ import 'presentation/pages/auth/login_page.dart';
 import 'presentation/pages/auth/create_account_page.dart';
 import 'presentation/pages/home/home_page.dart';
 import 'presentation/pages/wishlist/wishlist_page.dart';
+import 'presentation/pages/categories/combined_categories_page.dart';
 import 'providers/category_provider.dart';
 import 'providers/user_provider.dart';
+import 'providers/address_provider.dart';
 
 void main() {
   // Ensure Flutter is initialized
@@ -77,6 +79,10 @@ class _MyAppState extends State<MyApp> {
           builder: (context, state) => const WishlistPage(),
         ),
         GoRoute(
+          path: '/profile',
+          builder: (context, state) => const ProfilePage(),
+        ),
+        GoRoute(
           path: '/categories',
           builder: (context, state) => const CombinedCategoriesPage(),
         ),
@@ -107,6 +113,8 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => CategoryProvider()),
         // Use the already initialized user provider
         ChangeNotifierProvider.value(value: _userProvider),
+        // Add address provider
+        ChangeNotifierProvider(create: (_) => AddressProvider()),
         // Add other providers here as needed
       ],
       child: MaterialApp.router(

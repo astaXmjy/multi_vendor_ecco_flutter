@@ -1,7 +1,7 @@
 // lib/presentation/pages/wishlist/wishlist_page.dart
+import 'package:anu_app/presentation/pages/shared/custom_app_bar.dart';
+import 'package:anu_app/presentation/pages/shared/custom_bottom_nav.dart';
 import 'package:flutter/material.dart';
-import '../home/widgets/home_app_bar.dart';
-import '../home/widgets/custom_bottom_nav.dart';
 import 'widgets/wishlist_item_card.dart';
 import 'widgets/empty_wishlist.dart';
 
@@ -60,7 +60,10 @@ class _WishlistPageState extends State<WishlistPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const HomeAppBar(),
+      appBar: const CustomAppBar(
+        title: 'WishList',
+        showBackButton: false,
+      ),
       body: RefreshIndicator(
         onRefresh: _loadWishlistItems,
         child: _isLoading
@@ -120,7 +123,7 @@ class _WishlistPageState extends State<WishlistPage> {
                     ),
                   ),
       ),
-      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 2),
+      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 3),
     );
   }
 

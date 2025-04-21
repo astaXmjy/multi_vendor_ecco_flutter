@@ -2,18 +2,31 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'dart:developer' as developer;
 import '../../../api/services/auth_service.dart';
+import '../../../api/services/address_service.dart';
 import '../../../core/models/address_model.dart';
 import '../../../providers/user_provider.dart';
+import '../../../providers/address_provider.dart';
+
+enum AddressFormMode {
+  registration, // For user registration flow
+  newAddress, // For adding a new address from My Addresses
+  editAddress, // For editing an existing address
+}
 
 class AddressFormPage extends StatefulWidget {
-  final String fullName;
-  final String phone;
+  final String? fullName;
+  final String? phone;
+  final AddressFormMode mode;
+  final AddressModel? address; // For edit mode
 
   const AddressFormPage({
     Key? key,
-    required this.fullName,
-    required this.phone,
+    this.fullName,
+    this.phone,
+    this.mode = AddressFormMode.registration,
+    this.address,
   }) : super(key: key);
 
   @override
@@ -23,12 +36,15 @@ class AddressFormPage extends StatefulWidget {
 class _AddressFormPageState extends State<AddressFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
+  final _addressService = AddressService();
 
   final _streetController = TextEditingController();
   final _cityController = TextEditingController();
   final _stateController = TextEditingController();
-  final _countryController = TextEditingController();
+  final _countryController = TextEditingController(text: 'India');
   final _pincodeController = TextEditingController();
+  final _fullNameController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   String _selectedAddressType = 'home';
   bool _isDefault = true;
@@ -38,12 +54,50 @@ class _AddressFormPageState extends State<AddressFormPage> {
   List<String> _addressTypes = ['home', 'work', 'other'];
 
   @override
+  void initState() {
+    super.initState();
+    _initializeForm();
+  }
+
+  void _initializeForm() {
+    if (widget.mode == AddressFormMode.editAddress && widget.address != null) {
+      // Edit mode - populate with existing address data
+      final address = widget.address!;
+      _fullNameController.text = address.fullName;
+      _phoneController.text = address.phone;
+      _streetController.text = address.street;
+      _cityController.text = address.city;
+      _stateController.text = address.state;
+      _countryController.text = address.country;
+      _pincodeController.text = address.pincode;
+      _selectedAddressType = address.addressType;
+      _isDefault = address.isDefault;
+    } else if (widget.mode == AddressFormMode.registration) {
+      // Registration mode - use provided name and phone
+      _fullNameController.text = widget.fullName ?? '';
+      _phoneController.text = widget.phone ?? '';
+    } else {
+      // New address mode - try to get user data from provider
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      if (userProvider.isLoggedIn) {
+        _fullNameController.text = userProvider.fullName;
+        if (userProvider.userData != null &&
+            userProvider.userData!.containsKey('phone')) {
+          _phoneController.text = userProvider.userData!['phone'];
+        }
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _streetController.dispose();
     _cityController.dispose();
     _stateController.dispose();
     _countryController.dispose();
     _pincodeController.dispose();
+    _fullNameController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -58,9 +112,12 @@ class _AddressFormPageState extends State<AddressFormPage> {
     });
 
     final addressData = AddressModel(
+      id: widget.mode == AddressFormMode.editAddress
+          ? widget.address!.id
+          : null,
       addressType: _selectedAddressType,
-      fullName: widget.fullName,
-      phone: widget.phone,
+      fullName: _fullNameController.text.trim(),
+      phone: _phoneController.text.trim(),
       street: _streetController.text.trim(),
       city: _cityController.text.trim(),
       state: _stateController.text.trim(),
@@ -70,7 +127,23 @@ class _AddressFormPageState extends State<AddressFormPage> {
     );
 
     try {
-      final result = await _authService.addAddress(addressData.toJson());
+      Map<String, dynamic> result;
+
+      if (widget.mode == AddressFormMode.registration) {
+        // Use AuthService for registration flow
+        result = await _authService.addAddress(addressData.toJson());
+      } else if (widget.mode == AddressFormMode.newAddress) {
+        // Use AddressService for adding new address
+        final addressProvider =
+            Provider.of<AddressProvider>(context, listen: false);
+        result = await addressProvider.addAddress(addressData);
+      } else {
+        // Use AddressService for updating existing address
+        final addressProvider =
+            Provider.of<AddressProvider>(context, listen: false);
+        result = await addressProvider.updateAddress(
+            addressData.id!, addressData.toJson());
+      }
 
       setState(() {
         _isLoading = false;
@@ -80,35 +153,52 @@ class _AddressFormPageState extends State<AddressFormPage> {
         // Show success message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Address added successfully'),
+            SnackBar(
+              content: Text(_getSuccessMessage()),
               backgroundColor: Colors.green,
             ),
           );
 
-          // Make sure the user provider has the latest data
-          final userProvider =
-              Provider.of<UserProvider>(context, listen: false);
-          if (!userProvider.isLoggedIn) {
-            final userData = await _authService.getUserData();
-            if (userData != null) {
-              userProvider.setUserData(userData);
-            }
+          // Navigate based on mode
+          if (widget.mode == AddressFormMode.registration) {
+            context.go('/home');
+          } else {
+            Navigator.pop(context);
           }
-
-          // Navigate to the home page
-          context.go('/home');
         }
       } else {
         setState(() {
-          _errorMessage = result['message'] ?? 'Failed to add address';
+          _errorMessage = result['message'] ?? 'Failed to save address';
         });
       }
     } catch (e) {
+      developer.log('AddressFormPage: Error saving address: $e');
       setState(() {
         _isLoading = false;
         _errorMessage = 'An unexpected error occurred. Please try again.';
       });
+    }
+  }
+
+  String _getSuccessMessage() {
+    switch (widget.mode) {
+      case AddressFormMode.registration:
+        return 'Address added successfully';
+      case AddressFormMode.newAddress:
+        return 'Address added successfully';
+      case AddressFormMode.editAddress:
+        return 'Address updated successfully';
+    }
+  }
+
+  String _getPageTitle() {
+    switch (widget.mode) {
+      case AddressFormMode.registration:
+        return 'Add Delivery Address';
+      case AddressFormMode.newAddress:
+        return 'Add New Address';
+      case AddressFormMode.editAddress:
+        return 'Edit Address';
     }
   }
 
@@ -117,9 +207,9 @@ class _AddressFormPageState extends State<AddressFormPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8F5),
       appBar: AppBar(
-        title: const Text(
-          'Add Delivery Address',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          _getPageTitle(),
+          style: const TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color(0xFFFF7A2E),
         elevation: 0,
@@ -144,9 +234,9 @@ class _AddressFormPageState extends State<AddressFormPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
-                        'Add Your Delivery Address',
-                        style: TextStyle(
+                      Text(
+                        _getPageTitle(),
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
@@ -155,28 +245,55 @@ class _AddressFormPageState extends State<AddressFormPage> {
 
                       const SizedBox(height: 24),
 
-                      // Personal details section (read-only)
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(8),
+                      // Personal details section
+                      if (widget.mode != AddressFormMode.registration) ...[
+                        _buildFormLabel('Full Name', true),
+                        _buildTextField(
+                          controller: _fullNameController,
+                          hintText: 'Enter your full name',
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your full name';
+                            }
+                            return null;
+                          },
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Full Name: ${widget.fullName}',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Phone: ${widget.phone}',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ],
+                        const SizedBox(height: 16),
+                        _buildFormLabel('Phone Number', true),
+                        _buildTextField(
+                          controller: _phoneController,
+                          hintText: 'Enter your phone number',
+                          keyboardType: TextInputType.phone,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your phone number';
+                            }
+                            return null;
+                          },
                         ),
-                      ),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Full Name: ${widget.fullName}',
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Phone: ${widget.phone}',
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
 
                       const SizedBox(height: 24),
 
@@ -367,34 +484,29 @@ class _AddressFormPageState extends State<AddressFormPage> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Text(
-                                'Save Address',
-                                style: TextStyle(fontSize: 16),
+                            : Text(
+                                widget.mode == AddressFormMode.editAddress
+                                    ? 'Update Address'
+                                    : 'Save Address',
+                                style: const TextStyle(fontSize: 16),
                               ),
                       ),
 
-                      const SizedBox(height: 16),
-
-                      // Skip button
-                      TextButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () {
-                                // Make sure the user provider has the latest data before skipping
-                                Provider.of<UserProvider>(context,
-                                        listen: false)
-                                    .initialize();
-                                // Skip adding address and go straight to home
-                                context.go('/home');
-                              },
-                        child: const Text(
-                          'Skip for now',
-                          style: TextStyle(
-                            color: Color(0xFFFF7A2E),
-                            fontSize: 16,
+                      // Skip button for registration only
+                      if (widget.mode == AddressFormMode.registration) ...[
+                        const SizedBox(height: 16),
+                        TextButton(
+                          onPressed:
+                              _isLoading ? null : () => context.go('/home'),
+                          child: const Text(
+                            'Skip for now',
+                            style: TextStyle(
+                              color: Color(0xFFFF7A2E),
+                              fontSize: 16,
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),

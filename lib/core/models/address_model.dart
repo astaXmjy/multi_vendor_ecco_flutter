@@ -26,7 +26,7 @@ class AddressModel {
 
   factory AddressModel.fromJson(Map<String, dynamic> json) {
     return AddressModel(
-      id: json['id'],
+      id: json['id']?.toString(),
       addressType: json['address_type'] ?? '',
       fullName: json['full_name'] ?? '',
       phone: json['phone'] ?? '',
@@ -40,7 +40,7 @@ class AddressModel {
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    final map = {
       'address_type': addressType,
       'full_name': fullName,
       'phone': phone,
@@ -51,5 +51,39 @@ class AddressModel {
       'pincode': pincode,
       'is_default': isDefault,
     };
+
+    // Don't include id in the request unless it exists
+    if (id != null) {
+      map['id'] = id as Object;
+    }
+
+    return map;
+  }
+
+  // Create a copy with modified fields
+  AddressModel copyWith({
+    String? id,
+    String? addressType,
+    String? fullName,
+    String? phone,
+    String? street,
+    String? city,
+    String? state,
+    String? country,
+    String? pincode,
+    bool? isDefault,
+  }) {
+    return AddressModel(
+      id: id ?? this.id,
+      addressType: addressType ?? this.addressType,
+      fullName: fullName ?? this.fullName,
+      phone: phone ?? this.phone,
+      street: street ?? this.street,
+      city: city ?? this.city,
+      state: state ?? this.state,
+      country: country ?? this.country,
+      pincode: pincode ?? this.pincode,
+      isDefault: isDefault ?? this.isDefault,
+    );
   }
 }

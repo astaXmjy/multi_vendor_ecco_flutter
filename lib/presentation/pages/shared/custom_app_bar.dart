@@ -41,12 +41,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 // Navigate to search
               },
             ),
-            IconButton(
-              icon: const Icon(Icons.shopping_cart, color: Colors.white),
-              onPressed: () {
-                // Navigate to cart
-              },
-            ),
           ],
     );
   }

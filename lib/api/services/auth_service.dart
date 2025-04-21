@@ -28,10 +28,14 @@ class AuthService {
           // Save the token for future authenticated requests
           await _saveToken(responseData['token']);
 
-          // If the response includes user data, save it
-          if (responseData['user'] != null) {
-            await _saveUserData(responseData['user']);
-          }
+          // Save user data from login response
+          final userData = {
+            'id': responseData['customer_id'] ?? '',
+            'email': responseData['email'] ?? '',
+            'full_name': responseData['full_name'] ?? '',
+          };
+
+          await _saveUserData(userData);
         }
         return {
           'success': true,
@@ -74,10 +78,14 @@ class AuthService {
           // Save the token for future authenticated requests
           await _saveToken(responseData['token']);
 
-          // If the response includes user data, save it
-          if (responseData['user'] != null) {
-            await _saveUserData(responseData['user']);
-          }
+          // Save user data from registration response
+          final userData = {
+            'id': responseData['id'] ?? '',
+            'email': responseData['email'] ?? '',
+            'full_name': responseData['full_name'] ?? '',
+          };
+
+          await _saveUserData(userData);
         }
         return {
           'success': true,
@@ -106,10 +114,21 @@ class AuthService {
       final token = await _getToken();
 
       if (token == null) {
+        print('inside this token');
         return {
           'success': false,
           'message': 'Not authenticated',
         };
+      }
+
+      // Make sure we have all required fields
+      if (!addressData.containsKey('phone')) {
+        addressData['phone'] = ''; // Add a default empty phone if not provided
+      }
+
+      // Add country if missing (seems required by your API)
+      if (!addressData.containsKey('country')) {
+        addressData['country'] = 'India'; // Default country
       }
 
       final response = await http.post(
@@ -123,7 +142,7 @@ class AuthService {
 
       final responseData = json.decode(response.body);
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         // Address added successfully
         return {
           'success': true,
@@ -131,6 +150,8 @@ class AuthService {
         };
       } else {
         // Failed to add address
+        print('Address creation failed with status: ${response.statusCode}');
+        print('Response body: ${response.body}');
         return {
           'success': false,
           'message': responseData['message'] ?? 'Failed to add address',
@@ -138,6 +159,7 @@ class AuthService {
         };
       }
     } catch (e) {
+      print('Exception in addAddress: $e');
       return {
         'success': false,
         'message': 'An error occurred: $e',

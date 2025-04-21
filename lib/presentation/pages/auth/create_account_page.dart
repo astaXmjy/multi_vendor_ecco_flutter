@@ -1,7 +1,9 @@
+// lib/presentation/pages/auth/create_account_page.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'dart:developer' as developer;
 import '../../../api/services/auth_service.dart';
 import '../../../providers/user_provider.dart';
 import 'address_form_page.dart';
@@ -91,12 +93,25 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       'confirm_password': _confirmPasswordController.text,
     };
 
+    // Add optional fields if provided
+    if (_selectedDate != null) {
+      userData['date_of_birth'] =
+          DateFormat('yyyy-MM-dd').format(_selectedDate!);
+    }
+
+    if (_selectedGender.isNotEmpty) {
+      userData['gender'] = _selectedGender.toLowerCase();
+    }
+
     try {
+      developer.log('Sending registration data: $userData');
       final result = await _authService.register(userData);
 
       setState(() {
         _isLoading = false;
       });
+
+      developer.log('Registration result: $result');
 
       if (result['success']) {
         // Registration successful
@@ -107,8 +122,8 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
               Provider.of<UserProvider>(context, listen: false);
 
           // If the result includes user data, update the provider
-          if (result['data'] != null && result['data']['user'] != null) {
-            userProvider.setUserData(result['data']['user']);
+          if (result['data'] != null) {
+            userProvider.processRegistrationData(result['data']);
           } else {
             // If user data wasn't included in the registration response, fetch it
             final userData = await _authService.getUserData();
@@ -126,6 +141,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
               builder: (context) => AddressFormPage(
                 fullName: _fullNameController.text.trim(),
                 phone: _phoneController.text.trim(),
+                mode: AddressFormMode.registration,
               ),
             ),
           );
@@ -138,6 +154,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
         });
       }
     } catch (e) {
+      developer.log('Error in registration: $e');
       setState(() {
         _isLoading = false;
         _errorMessage = 'An unexpected error occurred. Please try again.';

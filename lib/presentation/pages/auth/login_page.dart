@@ -1,6 +1,8 @@
+// lib/presentation/pages/auth/login_page.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'dart:developer' as developer;
 import '../../../api/services/auth_service.dart';
 import '../../../providers/user_provider.dart';
 
@@ -64,11 +66,13 @@ class _LoginPageState extends State<LoginPage> {
           final userProvider =
               Provider.of<UserProvider>(context, listen: false);
 
-          // If the result includes user data, update the provider
-          if (result['data'] != null && result['data']['user'] != null) {
-            userProvider.setUserData(result['data']['user']);
+          // If the result includes data, update the provider with login data format
+          if (result['data'] != null) {
+            developer.log('Processing login data: ${result['data']}');
+            userProvider.processLoginData(result['data']);
           } else {
-            // If user data wasn't included in the login response, fetch it
+            // If data wasn't included in the login response, fetch it
+            developer.log('No data in login response, fetching user data...');
             final userData = await _authService.getUserData();
             if (userData != null) {
               userProvider.setUserData(userData);
@@ -87,6 +91,7 @@ class _LoginPageState extends State<LoginPage> {
       }
     } catch (e) {
       // Handle unexpected errors
+      developer.log('Error in login: $e');
       setState(() {
         _errorMessage = 'An unexpected error occurred. Please try again.';
         _isLoading = false;

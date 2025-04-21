@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../providers/user_provider.dart';
+import '../../profile/my_addresses_page.dart';
 import 'drawer_item.dart';
 
 class HomeDrawer extends StatelessWidget {
@@ -107,6 +108,25 @@ class HomeDrawer extends StatelessWidget {
               onTap: () {
                 // Navigate to addresses page
                 Navigator.pop(context);
+
+                // Check if user is logged in
+                if (!isLoggedIn) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please log in to manage your addresses'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  context.go('/login');
+                  return;
+                }
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MyAddressesPage(),
+                  ),
+                );
               }),
           const Divider(),
           DrawerItem(
