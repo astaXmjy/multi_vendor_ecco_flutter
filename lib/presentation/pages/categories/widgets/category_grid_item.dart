@@ -14,9 +14,6 @@ class CategoryGridItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Determine if this has subcategories to show an indicator
-    final bool hasChildren = category.children.isNotEmpty;
-
     return GestureDetector(
       onTap: () => onTap(category),
       child: Container(
@@ -79,21 +76,7 @@ class CategoryGridItem extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            // Show count of items or subcategories
-            if (category.productCount > 0 || hasChildren)
-              Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Text(
-                  hasChildren
-                      ? '${category.childrenCount} subcategories'
-                      : '${category.productCount} products',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+            // Removed subcategories count display
           ],
         ),
       ),

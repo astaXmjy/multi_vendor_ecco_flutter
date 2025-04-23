@@ -1,17 +1,17 @@
-// lib/presentation/pages/home/widgets/product_card.dart
+// lib/presentation/pages/product/widgets/product_grid_item.dart
 import 'package:flutter/material.dart';
 import '../../../../core/models/product_model.dart';
 
-class ProductCard extends StatelessWidget {
+class ProductGridItem extends StatelessWidget {
   final ProductModel product;
   final VoidCallback onTap;
-  final Function(ProductModel)? onWishlistTap;
+  final VoidCallback onWishlistTap;
 
-  const ProductCard({
+  const ProductGridItem({
     Key? key,
     required this.product,
     required this.onTap,
-    this.onWishlistTap,
+    required this.onWishlistTap,
   }) : super(key: key);
 
   @override
@@ -19,14 +19,12 @@ class ProductCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 160,
-        margin: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey.withOpacity(0.1),
               spreadRadius: 1,
               blurRadius: 3,
               offset: const Offset(0, 1),
@@ -36,48 +34,51 @@ class ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product image, discount badge, and wishlist button
+            // Product image and badges
             Stack(
               children: [
                 // Product image
-                ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(10),
-                    topRight: Radius.circular(10),
-                  ),
-                  child: Container(
-                    height: 130,
-                    width: double.infinity,
-                    color: Colors.grey[200],
-                    child: product.primaryImageUrl.isNotEmpty
-                        ? Image.network(
-                            product.primaryImageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (ctx, error, _) => Icon(
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(10),
+                      topRight: Radius.circular(10),
+                    ),
+                    child: Container(
+                      color: Colors.grey[200],
+                      child: product.primaryImageUrl.isNotEmpty
+                          ? Image.network(
+                              product.primaryImageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (ctx, error, _) => Icon(
+                                Icons.image,
+                                color: Colors.grey[400],
+                                size: 40,
+                              ),
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    value: loadingProgress.expectedTotalBytes !=
+                                            null
+                                        ? loadingProgress
+                                                .cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
+                                        : null,
+                                    color: const Color(0xFFFF7A2E),
+                                    strokeWidth: 2,
+                                  ),
+                                );
+                              },
+                            )
+                          : Icon(
                               Icons.image,
                               color: Colors.grey[400],
                               size: 40,
                             ),
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Center(
-                                child: CircularProgressIndicator(
-                                  value: loadingProgress.expectedTotalBytes !=
-                                          null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                          loadingProgress.expectedTotalBytes!
-                                      : null,
-                                  color: const Color(0xFFFF7A2E),
-                                  strokeWidth: 2,
-                                ),
-                              );
-                            },
-                          )
-                        : Icon(
-                            Icons.image,
-                            color: Colors.grey[400],
-                            size: 40,
-                          ),
+                    ),
                   ),
                 ),
 
@@ -107,30 +108,29 @@ class ProductCard extends StatelessWidget {
                   ),
 
                 // Wishlist button
-                if (onWishlistTap != null)
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: InkWell(
-                      onTap: () => onWishlistTap!(product),
-                      child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          product.isWishlisted
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          color: product.isWishlisted
-                              ? const Color(0xFFFF4947)
-                              : Colors.grey,
-                          size: 18,
-                        ),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: InkWell(
+                    onTap: onWishlistTap,
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.8),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        product.isWishlisted
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: product.isWishlisted
+                            ? const Color(0xFFFF4947)
+                            : Colors.grey,
+                        size: 18,
                       ),
                     ),
                   ),
+                ),
               ],
             ),
 

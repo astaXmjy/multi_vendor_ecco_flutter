@@ -127,16 +127,7 @@ class _AnimatedCategoryListState extends State<AnimatedCategoryList> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    if (category.productCount > 0 || hasChildren)
-                      Text(
-                        hasChildren
-                            ? '${category.childrenCount} subcategories'
-                            : '${category.productCount} products',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
+                    // Removed subcategory count display
                   ],
                 ),
               ),

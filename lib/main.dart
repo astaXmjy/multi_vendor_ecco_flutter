@@ -1,5 +1,4 @@
 // lib/main.dart
-import 'package:anu_app/presentation/pages/profile/profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -9,9 +8,13 @@ import 'presentation/pages/auth/create_account_page.dart';
 import 'presentation/pages/home/home_page.dart';
 import 'presentation/pages/wishlist/wishlist_page.dart';
 import 'presentation/pages/categories/combined_categories_page.dart';
+import 'presentation/pages/product/product_detail_page.dart';
+import 'presentation/pages/product/products_page.dart';
+import 'presentation/pages/profile/profile_page.dart';
 import 'providers/category_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/address_provider.dart';
+import 'providers/product_provider.dart';
 
 void main() {
   // Ensure Flutter is initialized
@@ -86,6 +89,26 @@ class _MyAppState extends State<MyApp> {
           path: '/categories',
           builder: (context, state) => const CombinedCategoriesPage(),
         ),
+        GoRoute(
+          path: '/product/:slug',
+          builder: (context, state) {
+            final slug = state.pathParameters['slug'] ?? '';
+            return ProductDetailPage(slug: slug);
+          },
+        ),
+        GoRoute(
+          path: '/products',
+          builder: (context, state) {
+            final type = state.uri.queryParameters['type'] ?? '';
+            final title = state.uri.queryParameters['title'] ?? 'Products';
+            final category = state.uri.queryParameters['category'];
+            return ProductsPage(
+              type: type,
+              title: title,
+              categorySlug: category,
+            );
+          },
+        ),
       ],
     );
 
@@ -115,6 +138,8 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider.value(value: _userProvider),
         // Add address provider
         ChangeNotifierProvider(create: (_) => AddressProvider()),
+        // Add product provider
+        ChangeNotifierProvider(create: (_) => ProductProvider()),
         // Add other providers here as needed
       ],
       child: MaterialApp.router(

@@ -78,6 +78,7 @@ class _CategoryListItemState extends State<CategoryListItem> {
                       color: Colors.grey.shade400,
                     ),
                   ),
+                // In the build method, update the section where we display category information
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,14 +90,7 @@ class _CategoryListItemState extends State<CategoryListItem> {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      if (widget.category.productCount > 0)
-                        Text(
-                          '${widget.category.productCount} products',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
+                      // Removed subcategory count display
                     ],
                   ),
                 ),
