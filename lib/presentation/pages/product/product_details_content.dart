@@ -1,17 +1,22 @@
 // lib/presentation/pages/product/widgets/product_details_content.dart
+import 'package:anu_app/core/models/breadcrumb_model.dart';
+import 'package:anu_app/presentation/pages/product/widgets/breadcrumb_widget.dart';
 import 'package:anu_app/presentation/pages/product/widgets/product_image_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/models/product_model.dart';
 
 class ProductDetailsContent extends StatelessWidget {
   final ProductModel product;
+  final List<BreadcrumbModel> breadcrumbs;
   final VoidCallback onWishlistToggle;
 
   const ProductDetailsContent({
-    Key? key,
+    super.key,
     required this.product,
+    this.breadcrumbs = const [],
     required this.onWishlistToggle,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +28,27 @@ class ProductDetailsContent extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Breadcrumbs
+                if (breadcrumbs.isNotEmpty)
+                  BreadcrumbWidget(
+                    breadcrumbs: breadcrumbs,
+                    onTap: (slug) {
+                      if (slug.isEmpty) {
+                        // Navigate to home
+                        context.go('/home');
+                      } else {
+                        // Navigate to category page
+                        final categoryName = breadcrumbs
+                            .firstWhere((b) => b.slug == slug,
+                                orElse: () => BreadcrumbModel(
+                                    id: '', name: 'Category', slug: slug))
+                            .name;
+                        context.go(
+                            '/products?type=category&title=$categoryName&category=$slug');
+                      }
+                    },
+                  ),
+
                 // Image slider
                 ProductImageSlider(images: product.images),
 

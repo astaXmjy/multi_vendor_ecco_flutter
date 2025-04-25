@@ -8,11 +8,11 @@ class ProductListItem extends StatelessWidget {
   final VoidCallback onWishlistTap;
 
   const ProductListItem({
-    Key? key,
+    super.key,
     required this.product,
     required this.onTap,
     required this.onWishlistTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

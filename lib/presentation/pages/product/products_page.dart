@@ -324,7 +324,7 @@ class _ProductsPageState extends State<ProductsPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.7,
+        childAspectRatio: 0.65, // Adjusted to give more vertical space
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),

@@ -40,26 +40,39 @@ class CategoryService {
       throw Exception('Error fetching category tree: $e');
     }
   }
-  
-  // Get a single category by slug
-  Future<CategoryModel> getCategoryBySlug(String slug) async {
+
+  // Get Category By Slug
+
+  Future<Map<String, dynamic>> getCategoryBySlug(String slug) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/categories/$slug/'));
+      print(slug);
+      final response = await http.get(Uri.parse('$baseUrl/categories/$slug'));
+
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        return CategoryModel.fromDetailJson(data);
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'data': data,
+        };
       } else {
-        throw Exception('Failed to load category: ${response.statusCode}');
+        return {
+          'success': false,
+          'message': 'Failed to load category details: ${response.statusCode}',
+        };
       }
-    } catch(e) {
-      throw Exception('Error fetching category: $e');
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error fetching category details: $e',
+      };
     }
   }
-  
+
   // Get featured categories
   Future<List<CategoryModel>> getFeaturedCategories() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/categories/?is_featured=true'));
+      final response =
+          await http.get(Uri.parse('$baseUrl/categories/?is_featured=true'));
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -67,7 +80,8 @@ class CategoryService {
 
         return results.map((item) => CategoryModel.fromJson(item)).toList();
       } else {
-        throw Exception('Failed to load featured categories: ${response.statusCode}');
+        throw Exception(
+            'Failed to load featured categories: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Error fetching featured categories: $e');

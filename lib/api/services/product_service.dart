@@ -1,6 +1,7 @@
 // lib/api/services/product_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/models/product_model.dart';
 
 class ProductService {
@@ -73,23 +74,31 @@ class ProductService {
   // Get featured products
   Future<Map<String, dynamic>> getFeaturedProducts({int limit = 10}) async {
     try {
-      final uri = Uri.parse('$baseUrl/products/products/').replace(
-          queryParameters: {'is_featured': 'true', 'limit': limit.toString()});
+      final uri = Uri.parse('$baseUrl/products/featured/');
 
-      final response = await http.get(uri);
+      // Get token if available
+      final String? token = await _getToken();
+      final Map<String, String> headers = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add authorization header if token exists
+      if (token != null) {
+        headers['Authorization'] = 'Token $token';
+      }
+
+      final response = await http.get(uri, headers: headers);
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
+        final List<dynamic> data = json.decode(response.body);
 
-        // Convert results to ProductModel list
-        final List<dynamic> results = data['results'];
-        final products =
-            results.map((item) => ProductModel.fromJson(item)).toList();
+        // Process the featured products which have a simpler structure
+        final products = await _processSimplifiedProducts(data);
 
         return {
           'success': true,
           'data': products,
-          'count': data['count'],
+          'count': products.length,
         };
       } else {
         return {
@@ -103,6 +112,45 @@ class ProductService {
         'message': 'Error fetching featured products: $e',
       };
     }
+  }
+
+  // Helper to process the simplified product format from the featured products endpoint
+  Future<List<ProductModel>> _processSimplifiedProducts(
+      List<dynamic> data) async {
+    List<ProductModel> products = [];
+
+    for (var item in data) {
+      // Get detailed product info for each featured product
+      try {
+        final slug = item['slug'] ?? '';
+        final detailResult = await getProductBySlug(slug);
+
+        if (detailResult['success'] && detailResult['data'] != null) {
+          products.add(detailResult['data']);
+        } else {
+          // Create a basic product model from the limited data
+          products.add(ProductModel(
+            id: item['id'] ?? 0,
+            name: item['name'] ?? '',
+            slug: item['slug'] ?? '',
+            description: item['description'] ?? '',
+            category: item['category'] ?? '',
+            brand: BrandModel.empty(), // Fetch brand details later if needed
+            regularPrice: item['regular_price'] ?? '0.00',
+            salePrice: item['sale_price'] ?? '0.00',
+            stockQuantity: item['stock_quantity'] ?? 0,
+            isActive: item['is_active'] ?? false,
+            isFeatured: true,
+            images: [], // We don't have image data in this response
+            createdAt: '',
+          ));
+        }
+      } catch (e) {
+        print('Error processing featured product: $e');
+      }
+    }
+
+    return products;
   }
 
   // Get single product details by slug
@@ -177,5 +225,10 @@ class ProductService {
   Future<Map<String, dynamic>> searchProducts(String query,
       {int page = 1, int limit = 20}) async {
     return getProducts(search: query, page: page, limit: limit);
+  }
+
+  Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('auth_token');
   }
 }

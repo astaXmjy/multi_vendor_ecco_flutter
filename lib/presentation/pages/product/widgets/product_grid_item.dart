@@ -135,57 +135,62 @@ class ProductGridItem extends StatelessWidget {
             ),
 
             // Product info
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  // Seller name if available
-                  if (product.sellerInfo != null)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      'by ${product.sellerInfo!.userName}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
+                      product.name,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
+                    const SizedBox(height: 4),
+                    // Seller name if available
+                    if (product.sellerInfo != null)
                       Text(
-                        product.formattedSalePrice,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFFF7A2E),
+                        'by ${product.sellerInfo!.userName}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey[600],
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(width: 4),
-                      if (product.discountPercentage.isNotEmpty)
+                    const Spacer(),
+                    Row(
+                      children: [
                         Text(
-                          product.formattedRegularPrice,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.grey[600],
-                            decoration: TextDecoration.lineThrough,
+                          product.formattedSalePrice,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFFF7A2E),
                           ),
                         ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(width: 4),
+                        if (product.discountPercentage.isNotEmpty)
+                          Expanded(
+                            child: Text(
+                              product.formattedRegularPrice,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.grey[600],
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
