@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'package:anu_app/presentation/pages/categories/category_tree_products_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -106,6 +107,18 @@ class _MyAppState extends State<MyApp> {
               type: type,
               title: title,
               categorySlug: category,
+            );
+          },
+        ),
+        GoRoute(
+          path: '/category-products/:slug',
+          builder: (context, state) {
+            final slug = state.pathParameters['slug'] ?? '';
+            final title =
+                state.uri.queryParameters['title'] ?? 'Category Products';
+            return CategoryTreeProductsPage(
+              categorySlug: slug,
+              title: title,
             );
           },
         ),

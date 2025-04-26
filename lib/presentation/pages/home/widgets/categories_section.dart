@@ -1,12 +1,15 @@
 // lib/presentation/pages/home/widgets/categories_section.dart
+import 'package:anu_app/presentation/pages/categories/category_tree_products_page.dart';
+import 'package:anu_app/providers/product_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../../api/services/category_service.dart';
 import '../../../../core/models/category_model.dart';
-import 'section_title.dart';
 
 class CategoriesSection extends StatefulWidget {
   final Function(CategoryModel)? onCategoryTap;
-  
+
   const CategoriesSection({
     Key? key,
     this.onCategoryTap,
@@ -32,7 +35,7 @@ class _CategoriesSectionState extends State<CategoriesSection> {
     try {
       // Get featured categories or menu categories
       final categories = await _categoryService.getFeaturedCategories();
-      
+
       setState(() {
         _categories = categories;
         _isLoading = false;
@@ -64,7 +67,7 @@ class _CategoriesSectionState extends State<CategoriesSection> {
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/categories');
+                  context.go('/categories');
                 },
                 child: const Text(
                   'View All',
@@ -131,11 +134,21 @@ class _CategoriesSectionState extends State<CategoriesSection> {
               if (widget.onCategoryTap != null) {
                 widget.onCategoryTap!(category);
               } else {
-                // Default navigation
-                Navigator.pushNamed(
-                  context, 
-                  '/products',
-                  arguments: {'categoryId': category.id, 'categoryName': category.name},
+                // Set this category as the root of breadcrumbs
+                final productProvider =
+                    Provider.of<ProductProvider>(context, listen: false);
+                productProvider.setCategoryBreadcrumbs([category]);
+
+                // Navigate to category tree products
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CategoryTreeProductsPage(
+                      categorySlug: category.slug,
+                      title: category.name,
+                      initialBreadcrumbs: [category],
+                    ),
+                  ),
                 );
               }
             },
@@ -215,10 +228,10 @@ class CategoryItem extends StatelessWidget {
         ),
       );
     }
-    
+
     return _buildImageOrFallback();
   }
-  
+
   Widget _buildImageOrFallback() {
     // Try to use image_url if available
     if (category.imageUrl != null && category.imageUrl!.isNotEmpty) {
@@ -235,7 +248,7 @@ class CategoryItem extends StatelessWidget {
         ),
       );
     }
-    
+
     // Otherwise use the fallback icon
     return _buildFallbackIcon();
   }

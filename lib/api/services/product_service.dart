@@ -189,7 +189,7 @@ class ProductService {
             'page': page.toString(),
             'limit': limit.toString()
           });
-
+      print('product by using category');
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {

@@ -1,9 +1,11 @@
 // lib/presentation/pages/categories/combined_categories_page.dart
+import 'package:anu_app/main.dart';
+import 'package:anu_app/presentation/pages/categories/category_tree_products_page.dart';
+import 'package:anu_app/providers/product_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../api/services/category_service.dart';
 import '../../../core/models/category_model.dart';
-import '../../../providers/category_provider.dart';
 import '../shared/custom_app_bar.dart';
 import '../shared/custom_bottom_nav.dart';
 import 'widgets/animated_category_list.dart';
@@ -165,22 +167,22 @@ class _CombinedCategoriesPageState extends State<CombinedCategoriesPage> {
   }
 
   void _navigateToCategory(CategoryModel category) {
-    // If the category has children, navigate to a subcategory page
-    if (category.children.isNotEmpty) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SubcategoryPage(
-            parentCategory: category,
-          ),
+    // Set this category as the root of breadcrumbs
+    final productProvider =
+        Provider.of<ProductProvider>(context, listen: false);
+    productProvider.setCategoryBreadcrumbs([category]);
+
+    // Navigate to the category tree products page
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CategoryTreeProductsPage(
+          categorySlug: category.slug,
+          title: category.name,
+          initialBreadcrumbs: [category],
         ),
-      );
-    } else {
-      // Otherwise, navigate to the products page for this category
-      print('Navigate to products for category: ${category.name}');
-      // Implement navigation to products page here
-      // Example: context.go('/products?category=${category.id}');
-    }
+      ),
+    );
   }
 }
 
@@ -249,10 +251,16 @@ class SubcategoryPage extends StatelessWidget {
                         ),
                       );
                     } else {
-                      // Otherwise, navigate to products page
-                      print(
-                          'Navigate to products for category: ${subcategory.name}');
-                      // Implementation goes here
+                      // Navigate to the category tree products page
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CategoryTreeProductsPage(
+                            categorySlug: subcategory.slug,
+                            title: subcategory.name,
+                          ),
+                        ),
+                      );
                     }
                   },
                 );

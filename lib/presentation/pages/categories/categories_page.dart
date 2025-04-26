@@ -1,5 +1,9 @@
 // lib/presentation/pages/categories/categories_page.dart
+import 'package:anu_app/main.dart';
+import 'package:anu_app/presentation/pages/categories/category_tree_products_page.dart';
+import 'package:anu_app/providers/product_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../api/services/category_service.dart';
 import '../../../core/models/category_model.dart';
 import '../shared/custom_app_bar.dart';
@@ -127,10 +131,21 @@ class _CategoriesPageState extends State<CategoriesPage> {
   }
 
   void _navigateToCategory(CategoryModel category) {
-    // Navigate to products screen with the selected category
-    print('Navigate to category: ${category.name}');
-    // Implement your navigation logic here
-    // Example:
-    // context.go('/products?category=${category.id}');
+    // Set this category as the root of breadcrumbs
+    final productProvider =
+        Provider.of<ProductProvider>(context, listen: false);
+    productProvider.setCategoryBreadcrumbs([category]);
+
+    // Navigate to the category tree products page
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CategoryTreeProductsPage(
+          categorySlug: category.slug,
+          title: category.name,
+          initialBreadcrumbs: [category],
+        ),
+      ),
+    );
   }
 }

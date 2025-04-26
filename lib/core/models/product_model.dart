@@ -102,45 +102,99 @@ class ProductModel {
   String get formattedRegularPrice => '₹$regularPrice';
   String get formattedSalePrice => '₹$salePrice';
 
-  // Convert from JSON - useful when fetching from API
+  // Enhanced fromJson with error handling and debug logging
   factory ProductModel.fromJson(Map<String, dynamic> json) {
-    // Parse images
-    List<ImageModel> imagesList = [];
-    if (json['images'] != null) {
-      imagesList = (json['images'] as List)
-          .map((img) => ImageModel.fromJson(img))
-          .toList();
-    }
+    try {
+      print('Parsing product: ${json['id']} - ${json['name']}');
 
-    // Parse brand
-    BrandModel brandModel = BrandModel.empty();
-    if (json['brand'] != null) {
-      brandModel = BrandModel.fromJson(json['brand']);
-    }
+      // Parse images
+      List<ImageModel> imagesList = [];
+      if (json['images'] != null && json['images'] is List) {
+        try {
+          imagesList = (json['images'] as List)
+              .map((img) => ImageModel.fromJson(img))
+              .toList();
+        } catch (e) {
+          print('Error parsing images for product ${json['id']}: $e');
+          // Continue with empty images list
+        }
+      }
 
-    // Parse seller info
-    SellerModel? sellerModel;
-    if (json['seller_info'] != null) {
-      sellerModel = SellerModel.fromJson(json['seller_info']);
-    }
+      // Parse brand
+      BrandModel brandModel = BrandModel.empty();
+      if (json['brand'] != null) {
+        try {
+          // If brand is an object
+          if (json['brand'] is Map<String, dynamic>) {
+            brandModel = BrandModel.fromJson(json['brand']);
+          }
+          // If brand is just an ID (integer)
+          else if (json['brand'] is int) {
+            brandModel = BrandModel(
+              id: json['brand'],
+              name: '',
+              slug: '',
+              description: '',
+              logo: '',
+              isActive: true,
+              createdAt: '',
+              updatedAt: '',
+            );
+          }
+        } catch (e) {
+          print('Error parsing brand for product ${json['id']}: $e');
+          // Continue with empty brand
+        }
+      }
 
-    return ProductModel(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
-      slug: json['slug'] ?? '',
-      description: json['description'] ?? '',
-      category: json['category'] ?? '',
-      brand: brandModel,
-      regularPrice: json['regular_price'] ?? '0.00',
-      salePrice: json['sale_price'] ?? '0.00',
-      stockQuantity: json['stock_quantity'] ?? 0,
-      isActive: json['is_active'] ?? false,
-      isFeatured: json['is_featured'] ?? false,
-      images: imagesList,
-      createdAt: json['created_at'] ?? '',
-      sellerInfo: sellerModel,
-      isWishlisted: json['is_wishlisted'] ?? false,
-    );
+      // Parse seller info
+      SellerModel? sellerModel;
+      if (json['seller_info'] != null) {
+        try {
+          sellerModel = SellerModel.fromJson(json['seller_info']);
+        } catch (e) {
+          print('Error parsing seller info for product ${json['id']}: $e');
+          // Continue with null seller info
+        }
+      }
+
+      // Safely convert price strings
+      String regularPrice = '0.00';
+      String salePrice = '0.00';
+
+      if (json['regular_price'] != null) {
+        regularPrice = json['regular_price'].toString();
+      }
+
+      if (json['sale_price'] != null) {
+        salePrice = json['sale_price'].toString();
+      }
+
+      return ProductModel(
+        id: json['id'] ?? 0,
+        name: json['name'] ?? '',
+        slug: json['slug'] ?? '',
+        description: json['description'] ?? '',
+        category: json['category']?.toString() ?? '',
+        brand: brandModel,
+        regularPrice: regularPrice,
+        salePrice: salePrice,
+        stockQuantity: json['stock_quantity'] ?? 0,
+        isActive: json['is_active'] ?? false,
+        isFeatured: json['is_featured'] ?? false,
+        images: imagesList,
+        createdAt: json['created_at'] ?? '',
+        sellerInfo: sellerModel,
+        isWishlisted: json['is_wishlisted'] ?? false,
+      );
+    } catch (e, stackTrace) {
+      print('Error creating ProductModel from JSON: $e');
+      print('Stack trace: $stackTrace');
+      print('JSON data: $json');
+
+      // Return an empty product model instead of crashing
+      return ProductModel.empty();
+    }
   }
 
   // Convert to JSON - useful when sending to API

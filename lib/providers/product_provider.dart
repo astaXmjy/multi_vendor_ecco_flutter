@@ -1,4 +1,6 @@
 // lib/providers/product_provider.dart
+import 'package:anu_app/api/services/category_service.dart';
+import 'package:anu_app/core/models/category_model.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:developer' as developer;
 import '../api/services/product_service.dart';
@@ -69,6 +71,182 @@ class ProductProvider with ChangeNotifier {
   ProductModel? get selectedProduct => _selectedProduct;
   bool get isLoadingProductDetails => _isLoadingProductDetails;
   String? get productDetailsError => _productDetailsError;
+
+  // Add these properties and methods to your ProductProvider class
+
+  // Breadcrumbs for category navigation
+  List<CategoryModel> _categoryBreadcrumbs = [];
+
+  // Getter for breadcrumbs
+  List<CategoryModel> get categoryBreadcrumbs => _categoryBreadcrumbs;
+
+  // Set breadcrumbs
+  void setCategoryBreadcrumbs(List<CategoryModel> breadcrumbs) {
+    _categoryBreadcrumbs = breadcrumbs;
+    notifyListeners();
+  }
+
+  // Add category to breadcrumbs
+  void addCategoryToBreadcrumbs(CategoryModel category) {
+    if (!_categoryBreadcrumbs.any((item) => item.id == category.id)) {
+      _categoryBreadcrumbs.add(category);
+      notifyListeners();
+    }
+  }
+
+  // Set breadcrumbs up to a specific index
+  void setBreadcrumbsUpToIndex(int index) {
+    if (index >= 0 && index < _categoryBreadcrumbs.length) {
+      _categoryBreadcrumbs = _categoryBreadcrumbs.sublist(0, index + 1);
+      notifyListeners();
+    }
+  }
+
+  // Clear breadcrumbs
+  void clearBreadcrumbs() {
+    _categoryBreadcrumbs = [];
+    notifyListeners();
+  }
+
+  // Load category with breadcrumb info
+  Future<void> loadCategoryWithBreadcrumbs(String slug) async {
+    try {
+      final categoryService = CategoryService();
+      final result = await categoryService.getCategoryBySlug(slug);
+
+      if (result['success'] && result['data'] != null) {
+        // Check if there's breadcrumb info in the response
+        if (result['data']['breadcrumb'] != null &&
+            result['data']['breadcrumb'] is List) {
+          final breadcrumbData = result['data']['breadcrumb'] as List;
+          final breadcrumbs = breadcrumbData
+              .map((item) => CategoryModel.fromJson(item))
+              .toList();
+
+          // Add current category if not already included
+          final currentCategory = CategoryModel.fromJson(result['data']);
+          if (!breadcrumbs.any((item) => item.id == currentCategory.id)) {
+            breadcrumbs.add(currentCategory);
+          }
+
+          setCategoryBreadcrumbs(breadcrumbs);
+        } else {
+          // If no breadcrumb info, just use the current category
+          final currentCategory = CategoryModel.fromJson(result['data']);
+          setCategoryBreadcrumbs([currentCategory]);
+        }
+      }
+    } catch (e) {
+      print('Error loading category breadcrumbs: $e');
+    }
+  }
+
+  // Add to the top with other properties
+  // Update the ProductProvider class with additional methods and properties
+
+  // Add to the top with other properties
+  List<ProductModel> _categoryTreeProducts = [];
+  List<CategoryModel> _categoryTreeSubcategories = [];
+  bool _isLoadingCategoryTree = false;
+  String? _categoryTreeError;
+
+  // Add to getters
+  List<ProductModel> get categoryTreeProducts => _categoryTreeProducts;
+  List<CategoryModel> get categoryTreeSubcategories =>
+      _categoryTreeSubcategories;
+  bool get isLoadingCategoryTree => _isLoadingCategoryTree;
+  String? get categoryTreeError => _categoryTreeError;
+
+  // Load products by category tree with complete details
+  Future<void> loadProductsByCategoryTree(String slug,
+      {bool refresh = true}) async {
+    if (refresh) {
+      _isLoadingCategoryTree = true;
+      _categoryTreeError = null;
+      _categoryTreeProducts = [];
+      _categoryTreeSubcategories = [];
+      notifyListeners();
+    }
+
+    try {
+      final categoryService = CategoryService();
+      print('Fetching products for category: $slug');
+      final result = await categoryService.getProductsByCategoryTree(slug);
+
+      if (result['success']) {
+        // Store subcategories
+        if (result.containsKey('subcategories')) {
+          _categoryTreeSubcategories =
+              List<CategoryModel>.from(result['subcategories']);
+        }
+
+        // Get basic product data
+        final List<Map<String, dynamic>> basicProducts =
+            List<Map<String, dynamic>>.from(result['basicProducts'] ?? []);
+        print('Fetched ${basicProducts.length} basic products');
+
+        if (basicProducts.isEmpty) {
+          _isLoadingCategoryTree = false;
+          notifyListeners();
+          return;
+        }
+
+        // Fetch full details for each product
+        List<ProductModel> completeProducts = [];
+
+        // Use ProductService to fetch complete details
+        final productService = ProductService();
+
+        // Fetch each product's complete details
+        for (var basicProduct in basicProducts) {
+          try {
+            final String slug = basicProduct['slug'];
+            final detailResult = await productService.getProductBySlug(slug);
+
+            if (detailResult['success'] && detailResult['data'] != null) {
+              completeProducts.add(detailResult['data']);
+            } else {
+              // If can't get detailed info, create simple product from basic info
+              final basicInfo = basicProduct['basicInfo'];
+              completeProducts.add(ProductModel(
+                id: basicInfo['id'] ?? 0,
+                name: basicInfo['name'] ?? '',
+                slug: basicInfo['slug'] ?? '',
+                description: basicInfo['description'] ?? '',
+                category: basicInfo['category']?.toString() ?? '',
+                brand: BrandModel.empty(),
+                regularPrice: basicInfo['regular_price']?.toString() ?? '0.00',
+                salePrice: basicInfo['sale_price']?.toString() ?? '0.00',
+                stockQuantity: basicInfo['stock_quantity'] ?? 0,
+                isActive: basicInfo['is_active'] ?? false,
+                isFeatured: basicInfo['is_featured'] ?? false,
+                images: [],
+                createdAt: basicInfo['created_at'] ?? '',
+              ));
+            }
+          } catch (e) {
+            print(
+                'Error fetching details for product ${basicProduct['slug']}: $e');
+            // Continue with next product
+          }
+        }
+
+        _categoryTreeProducts = completeProducts;
+        _isLoadingCategoryTree = false;
+        notifyListeners();
+      } else {
+        print('Error fetching products: ${result['message']}');
+        _categoryTreeError = result['message'];
+        _isLoadingCategoryTree = false;
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Exception in loadProductsByCategoryTree: $e');
+      _categoryTreeError = e.toString();
+      _isLoadingCategoryTree = false;
+      notifyListeners();
+    }
+  }
 
   // Get all products or with specific parameters
   Future<void> getProducts({
@@ -217,7 +395,8 @@ class ProductProvider with ChangeNotifier {
   }
 
   // Load products by category
-  Future<void> loadProductsByCategory(String categorySlug, {bool refresh = true}) async {
+  Future<void> loadProductsByCategory(String categorySlug,
+      {bool refresh = true}) async {
     if (refresh) {
       _isLoadingCategory = true;
       _categoryError = null;
@@ -316,7 +495,8 @@ class ProductProvider with ChangeNotifier {
   }
 
   // Convert product to map for product card
-  List<Map<String, dynamic>> convertProductsToCardMaps(List<ProductModel> products) {
+  List<Map<String, dynamic>> convertProductsToCardMaps(
+      List<ProductModel> products) {
     return products.map((product) => product.toCardMap()).toList();
   }
 
@@ -324,7 +504,8 @@ class ProductProvider with ChangeNotifier {
   void toggleWishlist(ProductModel product) {
     // In a real app, this would call an API to add/remove from wishlist
     // For now, we'll just update the local state
-    final updatedProduct = product.copyWith(isWishlisted: !product.isWishlisted);
+    final updatedProduct =
+        product.copyWith(isWishlisted: !product.isWishlisted);
 
     // Update product in all lists
     _updateProductInLists(updatedProduct);
@@ -332,43 +513,50 @@ class ProductProvider with ChangeNotifier {
     notifyListeners();
 
     // Here you would also make the API call to update the server
-    developer.log('Toggled wishlist for product: ${product.name}, new status: ${!product.isWishlisted}');
+    developer.log(
+        'Toggled wishlist for product: ${product.name}, new status: ${!product.isWishlisted}');
   }
 
   // Helper to update a product in all lists
   void _updateProductInLists(ProductModel updatedProduct) {
     // Update in featured products
-    final featuredIndex = _featuredProducts.indexWhere((p) => p.id == updatedProduct.id);
+    final featuredIndex =
+        _featuredProducts.indexWhere((p) => p.id == updatedProduct.id);
     if (featuredIndex >= 0) {
       _featuredProducts[featuredIndex] = updatedProduct;
     }
 
     // Update in new arrivals
-    final newArrivalsIndex = _newArrivals.indexWhere((p) => p.id == updatedProduct.id);
+    final newArrivalsIndex =
+        _newArrivals.indexWhere((p) => p.id == updatedProduct.id);
     if (newArrivalsIndex >= 0) {
       _newArrivals[newArrivalsIndex] = updatedProduct;
     }
 
     // Update in best sellers
-    final bestSellersIndex = _bestSellers.indexWhere((p) => p.id == updatedProduct.id);
+    final bestSellersIndex =
+        _bestSellers.indexWhere((p) => p.id == updatedProduct.id);
     if (bestSellersIndex >= 0) {
       _bestSellers[bestSellersIndex] = updatedProduct;
     }
 
     // Update in category products
-    final categoryIndex = _categoryProducts.indexWhere((p) => p.id == updatedProduct.id);
+    final categoryIndex =
+        _categoryProducts.indexWhere((p) => p.id == updatedProduct.id);
     if (categoryIndex >= 0) {
       _categoryProducts[categoryIndex] = updatedProduct;
     }
 
     // Update in search results
-    final searchIndex = _searchResults.indexWhere((p) => p.id == updatedProduct.id);
+    final searchIndex =
+        _searchResults.indexWhere((p) => p.id == updatedProduct.id);
     if (searchIndex >= 0) {
       _searchResults[searchIndex] = updatedProduct;
     }
 
     // Update in all products
-    final allProductsIndex = _allProducts.indexWhere((p) => p.id == updatedProduct.id);
+    final allProductsIndex =
+        _allProducts.indexWhere((p) => p.id == updatedProduct.id);
     if (allProductsIndex >= 0) {
       _allProducts[allProductsIndex] = updatedProduct;
     }
