@@ -2,6 +2,7 @@
 import 'package:anu_app/presentation/pages/product/widgets/product_grid_item.dart';
 import 'package:anu_app/presentation/pages/product/widgets/product_list_item.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/models/product_model.dart';
 import '../../../core/models/category_model.dart';
@@ -102,10 +103,7 @@ class _CategoryTreeProductsPageState extends State<CategoryTreeProductsPage> {
   }
 
   void _navigateToProductDetails(ProductModel product) {
-    Navigator.pushNamed(
-      context,
-      '/product/${product.slug}',
-    );
+    context.push('/product/${product.slug}');
   }
 
   void _navigateToSubcategory(CategoryModel subcategory) {
@@ -116,16 +114,8 @@ class _CategoryTreeProductsPageState extends State<CategoryTreeProductsPage> {
     productProvider.addCategoryToBreadcrumbs(subcategory);
 
     // Navigate to subcategory
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CategoryTreeProductsPage(
-          categorySlug: subcategory.slug,
-          title: subcategory.name,
-          initialBreadcrumbs: productProvider.categoryBreadcrumbs,
-        ),
-      ),
-    );
+    context.push(
+        '/category-products/${subcategory.slug}?title=${subcategory.name}');
   }
 
   void _onBreadcrumbTap(CategoryModel category, int index) {
@@ -136,16 +126,8 @@ class _CategoryTreeProductsPageState extends State<CategoryTreeProductsPage> {
     productProvider.setBreadcrumbsUpToIndex(index);
 
     // Navigate to the selected breadcrumb category
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CategoryTreeProductsPage(
-          categorySlug: category.slug,
-          title: category.name,
-          initialBreadcrumbs: productProvider.categoryBreadcrumbs,
-        ),
-      ),
-    );
+    context.pushReplacement(
+        '/category-products/${category.slug}?title=${category.name}');
   }
 
   @override

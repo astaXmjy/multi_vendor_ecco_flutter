@@ -3,6 +3,7 @@ import 'package:anu_app/main.dart';
 import 'package:anu_app/presentation/pages/categories/category_tree_products_page.dart';
 import 'package:anu_app/providers/product_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../api/services/category_service.dart';
 import '../../../core/models/category_model.dart';
@@ -173,16 +174,7 @@ class _CombinedCategoriesPageState extends State<CombinedCategoriesPage> {
     productProvider.setCategoryBreadcrumbs([category]);
 
     // Navigate to the category tree products page
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CategoryTreeProductsPage(
-          categorySlug: category.slug,
-          title: category.name,
-          initialBreadcrumbs: [category],
-        ),
-      ),
-    );
+    context.push('/category-products/${category.slug}?title=${category.name}');
   }
 }
 

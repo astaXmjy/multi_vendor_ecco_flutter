@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'dart:developer' as developer;
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../api/services/auth_service.dart';
 import '../../../providers/user_provider.dart';
 import 'address_form_page.dart';
+import 'otp_verification_page.dart';
 
 class CreateAccountPage extends StatefulWidget {
   const CreateAccountPage({Key? key}) : super(key: key);
@@ -85,6 +87,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       _fieldErrors = null;
     });
 
+    // Collect all registration data
     final userData = {
       'email': _emailController.text.trim(),
       'phone': _phoneController.text.trim(),
@@ -104,61 +107,160 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
     }
 
     try {
-      developer.log('Sending registration data: $userData');
-      final result = await _authService.register(userData);
+      developer.log('Starting registration process with OTP verification');
 
-      setState(() {
-        _isLoading = false;
-      });
-
-      developer.log('Registration result: $result');
-
-      if (result['success']) {
-        // Registration successful
-
-        // Update the UserProvider with the user data
-        if (mounted) {
-          final userProvider =
-              Provider.of<UserProvider>(context, listen: false);
-
-          // If the result includes user data, update the provider
-          if (result['data'] != null) {
-            userProvider.processRegistrationData(result['data']);
-          } else {
-            // If user data wasn't included in the registration response, fetch it
-            final userData = await _authService.getUserData();
-            if (userData != null) {
-              userProvider.setUserData(userData);
-            }
-          }
-        }
-
-        // Navigate to address form
-        if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AddressFormPage(
-                fullName: _fullNameController.text.trim(),
-                phone: _phoneController.text.trim(),
-                mode: AddressFormMode.registration,
-              ),
-            ),
-          );
-        }
-      } else {
-        // Handle error response from API
-        setState(() {
-          _errorMessage = result['message'];
-          _fieldErrors = result['errors'];
-        });
+      // Format phone with country code if not already formatted
+      String formattedPhone = _phoneController.text.trim();
+      if (!formattedPhone.startsWith('+')) {
+        // Assuming India (+91) as default country code
+        formattedPhone =
+            '+91${formattedPhone.replaceAll(RegExp(r'[^0-9]'), '')}';
       }
+
+      // Start Firebase phone verification BEFORE registering the user
+      await _sendOTP(formattedPhone, userData);
     } catch (e) {
-      developer.log('Error in registration: $e');
+      developer.log('Error in registration process: $e');
       setState(() {
         _isLoading = false;
         _errorMessage = 'An unexpected error occurred. Please try again.';
       });
+    }
+  }
+
+  // Send OTP via Firebase
+  Future<void> _sendOTP(
+      String phoneNumber, Map<String, dynamic> userData) async {
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          // Auto-verification on Android devices
+          // This will not be triggered on iOS
+          developer.log('Auto verification completed');
+
+          // We need to register the user since auto-verification succeeded
+          await _registerUser(userData);
+
+          // Then proceed to address form if registration was successful
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AddressFormPage(
+                  fullName: _fullNameController.text.trim(),
+                  phone: _phoneController.text.trim(),
+                  mode: AddressFormMode.registration,
+                ),
+              ),
+            );
+          }
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          developer.log('Phone verification failed: ${e.message}');
+          setState(() {
+            _isLoading = false;
+            _errorMessage = 'Phone verification failed: ${e.message}';
+          });
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          developer.log('OTP sent to $phoneNumber');
+          setState(() {
+            _isLoading = false;
+          });
+
+          // Navigate to OTP verification page
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OtpVerificationPage(
+                phoneNumber: phoneNumber,
+                verificationId: verificationId,
+                registrationData:
+                    userData, // Pass registration data to OTP page
+                isUserRegistered: false, // User is NOT registered yet
+                onVerificationSuccess: (BuildContext context) async {
+                  // Register user after successful verification
+                  final success = await _registerUser(userData);
+
+                  if (success && mounted) {
+                    // On successful registration, proceed to address form
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddressFormPage(
+                          fullName: _fullNameController.text.trim(),
+                          phone: _phoneController.text.trim(),
+                          mode: AddressFormMode.registration,
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ),
+          );
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          // Auto-retrieval timeout
+          developer.log('OTP auto retrieval timeout');
+        },
+        timeout: const Duration(seconds: 60),
+      );
+    } catch (e) {
+      developer.log('Error sending OTP: $e');
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Failed to send verification code. Please try again.';
+      });
+    }
+  }
+
+  // Register user after OTP verification
+  Future<bool> _registerUser(Map<String, dynamic> userData) async {
+    try {
+      developer.log('Registering user after OTP verification: $userData');
+      final result = await _authService.register(userData);
+
+      if (!result['success']) {
+        // Registration failed, show error
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Registration failed'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return false;
+      }
+
+      // If registration was successful, update the user provider
+      if (mounted) {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+        if (result['data'] != null) {
+          userProvider.processRegistrationData(result['data']);
+        } else {
+          final userData = await _authService.getUserData();
+          if (userData != null) {
+            userProvider.setUserData(userData);
+          }
+        }
+      }
+      return true;
+    } catch (e) {
+      print(e);
+      developer.log('Error in user registration: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Registration failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return false;
     }
   }
 
@@ -291,6 +393,9 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
                                   return 'Please enter your phone number';
+                                }
+                                if (value.trim().length < 10) {
+                                  return 'Please enter a valid phone number';
                                 }
                                 return null;
                               },

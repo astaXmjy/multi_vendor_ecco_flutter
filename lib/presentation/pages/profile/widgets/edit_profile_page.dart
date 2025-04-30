@@ -1,12 +1,11 @@
-// lib/presentation/pages/profile/edit_profile_page.dart
 import 'dart:io';
 import 'package:anu_app/api/services/profile_service.dart';
 import 'package:anu_app/core/models/profile_model.dart';
 import 'package:anu_app/presentation/pages/shared/custom_app_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:path/path.dart' as path;
 
 class EditProfilePage extends StatefulWidget {
   final ProfileModel profile;
@@ -251,8 +250,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
         );
 
-        Navigator.pop(
-            context, true); // Return true to indicate update successful
+        context.pop(true); // Return true to indicate update successful
       } else {
         // Update failed
         print("Profile update failed: ${result['message']}");

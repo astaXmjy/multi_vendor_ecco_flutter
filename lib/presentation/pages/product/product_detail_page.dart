@@ -89,7 +89,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         title: 'Product Details',
         showBackButton: true,
         onBackPressed: () {
-          Navigator.of(context).pop();
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/home');
+          }
         },
         actions: [
           IconButton(

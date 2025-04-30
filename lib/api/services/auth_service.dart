@@ -1,10 +1,12 @@
 // lib/api/services/auth_service.dart
 import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   final String baseUrl = 'http://65.1.88.148:8000/api/v1';
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   // Login user
   Future<Map<String, dynamic>> login(String email, String password) async {
@@ -36,6 +38,7 @@ class AuthService {
           };
 
           await _saveUserData(userData);
+          await _secureStorage.write(key: 'user_password', value: password);
         }
         return {
           'success': true,
@@ -73,6 +76,7 @@ class AuthService {
       final responseData = json.decode(response.body);
 
       if (response.statusCode == 201) {
+        print(responseData);
         // Registration successful
         if (responseData['token'] != null) {
           // Save the token for future authenticated requests
@@ -195,6 +199,11 @@ class AuthService {
     return null;
   }
 
+  // Get saved password (from secure storage)
+  Future<String?> getSavedPassword() async {
+    return await _secureStorage.read(key: 'user_password');
+  }
+
   // Check if user is logged in
   Future<bool> isLoggedIn() async {
     final token = await _getToken();
@@ -206,5 +215,6 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     await prefs.remove('user_data');
+    await _secureStorage.delete(key: 'user_password');
   }
 }

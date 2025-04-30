@@ -1,5 +1,7 @@
 // lib/presentation/widgets/breadcrumb_navigation.dart
+import 'package:anu_app/main.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/models/category_model.dart';
 
 class BreadcrumbNavigation extends StatelessWidget {
@@ -35,8 +37,7 @@ class BreadcrumbNavigation extends StatelessWidget {
             InkWell(
               onTap: () {
                 // Navigate to home
-                Navigator.of(context)
-                    .pushNamedAndRemoveUntil('/home', (route) => false);
+                context.go('/home');
               },
               child: const Text(
                 'Home',

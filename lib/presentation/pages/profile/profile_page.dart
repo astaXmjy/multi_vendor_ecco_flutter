@@ -1,6 +1,5 @@
-// lib/presentation/pages/profile/profile_page.dart
-import 'package:anu_app/presentation/pages/profile/widgets/edit_profile_page.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../api/services/profile_service.dart';
 import '../../../core/models/profile_model.dart';
 import '../shared/custom_app_bar.dart';
@@ -79,12 +78,8 @@ class _ProfilePageState extends State<ProfilePage> {
   void _navigateToEditProfile() async {
     if (_profileData == null) return;
 
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditProfilePage(profile: _profileData!),
-      ),
-    );
+    final result =
+        await context.push<bool>('/profile/edit', extra: _profileData);
 
     // If profile was updated, reload profile data
     if (result == true) {
@@ -228,7 +223,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   title: 'My Addresses',
                   subtitle: '${_profileData!.addresses.length} saved addresses',
                   onTap: () {
-                    // Navigate to addresses page
+                    context.go('/profile/addresses');
                   },
                 ),
                 const Divider(height: 1),

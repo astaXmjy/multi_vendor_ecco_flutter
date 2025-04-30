@@ -163,7 +163,7 @@ class _AddressFormPageState extends State<AddressFormPage> {
           if (widget.mode == AddressFormMode.registration) {
             context.go('/home');
           } else {
-            Navigator.pop(context);
+            context.pop();
           }
         }
       } else {

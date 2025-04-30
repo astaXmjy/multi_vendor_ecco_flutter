@@ -1,5 +1,7 @@
 // lib/presentation/pages/profile/my_addresses_page.dart
+import 'package:anu_app/main.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/models/address_model.dart';
 import '../../../providers/address_provider.dart';
@@ -183,26 +185,11 @@ class _MyAddressesPageState extends State<MyAddressesPage> {
   }
 
   void _navigateToAddAddress() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const AddressFormPage(
-          mode: AddressFormMode.newAddress,
-        ),
-      ),
-    );
+    context.push('/address-form?mode=newAddress');
   }
 
   void _navigateToEditAddress(AddressModel address) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddressFormPage(
-          mode: AddressFormMode.editAddress,
-          address: address,
-        ),
-      ),
-    );
+    context.push('/address-form?mode=editAddress');
   }
 
   Future<void> _setDefaultAddress(String addressId) async {

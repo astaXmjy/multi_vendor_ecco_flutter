@@ -2,8 +2,10 @@
 import 'package:anu_app/core/models/breadcrumb_model.dart';
 import 'package:anu_app/presentation/pages/product/widgets/breadcrumb_widget.dart';
 import 'package:anu_app/presentation/pages/product/widgets/product_image_slider.dart';
+import 'package:anu_app/providers/cart_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/models/product_model.dart';
 
 class ProductDetailsContent extends StatelessWidget {
@@ -255,11 +257,21 @@ class ProductDetailsContent extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    // Add to cart functionality
+                    final cartProvider =
+                        Provider.of<CartProvider>(context, listen: false);
+                    cartProvider.addItem(product);
+
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Added to cart'),
-                        backgroundColor: Color(0xFF4CAF50),
+                      SnackBar(
+                        content: const Text('Add to cart'),
+                        backgroundColor: Colors.green,
+                        action: SnackBarAction(
+                          label: 'VIEW CART',
+                          textColor: Colors.white,
+                          onPressed: () {
+                            context.push('/cart');
+                          },
+                        ),
                       ),
                     );
                   },
@@ -276,13 +288,11 @@ class ProductDetailsContent extends StatelessWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    // Buy now functionality
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content:
-                            Text('Buy Now functionality not implemented yet'),
-                      ),
-                    );
+                    // Add to cart and go to cart
+                    final cartProvider =
+                        Provider.of<CartProvider>(context, listen: false);
+                    cartProvider.addItem(product);
+                    context.push('/cart');
                   },
                   icon: const Icon(Icons.flash_on),
                   label: const Text('Buy Now'),

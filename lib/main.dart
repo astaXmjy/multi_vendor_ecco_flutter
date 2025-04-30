@@ -1,5 +1,14 @@
 // lib/main.dart
+import 'package:anu_app/api/services/auth_service.dart';
+import 'package:anu_app/core/models/profile_model.dart';
+import 'package:anu_app/presentation/pages/auth/address_form_page.dart';
+import 'package:anu_app/presentation/pages/cart/cart_page.dart';
+import 'package:anu_app/presentation/pages/cart/checkout_page.dart';
 import 'package:anu_app/presentation/pages/categories/category_tree_products_page.dart';
+import 'package:anu_app/presentation/pages/profile/my_addresses_page.dart';
+import 'package:anu_app/presentation/pages/profile/widgets/edit_profile_page.dart';
+import 'package:anu_app/providers/cart_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -17,9 +26,11 @@ import 'providers/user_provider.dart';
 import 'providers/address_provider.dart';
 import 'providers/product_provider.dart';
 
-void main() {
+void main() async {
   // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp();
 
   runApp(const MyApp());
 }
@@ -34,7 +45,9 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   // Create a UserProvider instance that we can initialize early
   final UserProvider _userProvider = UserProvider();
+  final AuthService _authService = AuthService();
   bool _initialized = false;
+  bool _isAutoLoginAttempted = false;
 
   @override
   void initState() {
@@ -46,7 +59,10 @@ class _MyAppState extends State<MyApp> {
     try {
       // Initialize the user provider
       await _userProvider.initialize();
+
       developer.log('MyApp: UserProvider initialized');
+
+      await _attemptAutoLogin();
     } catch (e) {
       developer.log('MyApp: Error initializing UserProvider - $e');
     } finally {
@@ -56,11 +72,71 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  Future<void> _attemptAutoLogin() async {
+    try {
+      // Check if the user is already logged in
+      final bool isLoggedIn = await _authService.isLoggedIn();
+
+      if (isLoggedIn) {
+        // User is already logged in, no need to auto-login
+        _isAutoLoginAttempted = true;
+        return;
+      }
+
+      // Get saved user data
+      final userData = await _authService.getUserData();
+      final savedPassword = await _authService.getSavedPassword();
+
+      // Check if we have the necessary credentials
+      if (userData != null &&
+          userData['email'] != null &&
+          userData['email'].isNotEmpty &&
+          savedPassword != null &&
+          savedPassword.isNotEmpty) {
+        // Attempt to login with saved credentials
+        final loginResult =
+            await _authService.login(userData['email'], savedPassword);
+
+        if (loginResult['success']) {
+          // Login successful - Update UserProvider
+          _userProvider.processLoginData(loginResult['data']);
+          _isAutoLoginAttempted = true;
+        }
+      }
+    } catch (e) {
+      developer.log('Error during auto-login: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // show loading screen until initialized
+
+    if (!_initialized) {
+      return const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(color: Color(0xFFFF7A2E)),
+                SizedBox(height: 16),
+                Text('Initializing...'),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Create the router configuration with initial location based on login status
+    final String initialLocation =
+        _userProvider.isLoggedIn ? '/home' : '/login';
+
     // Create the router configuration
+// In main.dart, update the GoRouter configuration
     final router = GoRouter(
-      initialLocation: '/login',
+      initialLocation: initialLocation,
       routes: [
         GoRoute(
           path: '/login',
@@ -72,7 +148,26 @@ class _MyAppState extends State<MyApp> {
         ),
         GoRoute(
           path: '/address-form',
-          builder: (context, state) => const CreateAccountPage(),
+          builder: (context, state) {
+            final mode = state.uri.queryParameters['mode'] ?? 'newAddress';
+            final fullName = state.uri.queryParameters['fullName'];
+            final phone = state.uri.queryParameters['phone'];
+
+            AddressFormMode addressMode;
+            if (mode == 'registration') {
+              addressMode = AddressFormMode.registration;
+            } else if (mode == 'editAddress') {
+              addressMode = AddressFormMode.editAddress;
+            } else {
+              addressMode = AddressFormMode.newAddress;
+            }
+
+            return AddressFormPage(
+              mode: addressMode,
+              fullName: fullName,
+              phone: phone,
+            );
+          },
         ),
         GoRoute(
           path: '/home',
@@ -85,6 +180,17 @@ class _MyAppState extends State<MyApp> {
         GoRoute(
           path: '/profile',
           builder: (context, state) => const ProfilePage(),
+        ),
+        GoRoute(
+          path: '/profile/edit',
+          builder: (context, state) {
+            final profileData = state.extra as ProfileModel?;
+            return EditProfilePage(profile: profileData!);
+          },
+        ),
+        GoRoute(
+          path: '/profile/addresses',
+          builder: (context, state) => const MyAddressesPage(),
         ),
         GoRoute(
           path: '/categories',
@@ -116,32 +222,23 @@ class _MyAppState extends State<MyApp> {
             final slug = state.pathParameters['slug'] ?? '';
             final title =
                 state.uri.queryParameters['title'] ?? 'Category Products';
+            // You may also want to pass breadcrumbs through state.extra
             return CategoryTreeProductsPage(
               categorySlug: slug,
               title: title,
             );
           },
         ),
+        GoRoute(
+          path: '/cart',
+          builder: (context, state) => const CartPage(),
+        ),
+        GoRoute(
+          path: '/checkout',
+          builder: (context, state) => const CheckoutPage(),
+        ),
       ],
     );
-
-    // Show loading screen until initialized
-    if (!_initialized) {
-      return MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                CircularProgressIndicator(color: Color(0xFFFF7A2E)),
-                SizedBox(height: 16),
-                Text('Initializing...'),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
 
     // Wrap the app with providers for state management
     return MultiProvider(
@@ -153,7 +250,8 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => AddressProvider()),
         // Add product provider
         ChangeNotifierProvider(create: (_) => ProductProvider()),
-        // Add other providers here as needed
+        // Add cart provider
+        ChangeNotifierProvider(create: (_) => CartProvider()),
       ],
       child: MaterialApp.router(
         title: 'Anugami E-commerce',

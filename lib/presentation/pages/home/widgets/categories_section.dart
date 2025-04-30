@@ -135,21 +135,13 @@ class _CategoriesSectionState extends State<CategoriesSection> {
                 widget.onCategoryTap!(category);
               } else {
                 // Set this category as the root of breadcrumbs
-                final productProvider =
-                    Provider.of<ProductProvider>(context, listen: false);
-                productProvider.setCategoryBreadcrumbs([category]);
+                // final productProvider =
+                //     Provider.of<ProductProvider>(context, listen: false);
+                // productProvider.setCategoryBreadcrumbs([category]);
 
                 // Navigate to category tree products
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CategoryTreeProductsPage(
-                      categorySlug: category.slug,
-                      title: category.name,
-                      initialBreadcrumbs: [category],
-                    ),
-                  ),
-                );
+                context.push(
+                    '/category-products/${category.slug}?title=${category.name}');
               }
             },
           );
