@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../core/models/category_model.dart';
 
 class CategoryService {
-  final String baseUrl = 'http://65.1.88.148:8000/api/v1/categories';
+  final String baseUrl = 'http://172.18.192.1:8000/api/v1/categories';
 
   // Fetch flat list of categories
   Future<List<CategoryModel>> getCategories() async {
@@ -96,7 +96,7 @@ class CategoryService {
     try {
       final response = await http.get(
         Uri.parse(
-            'http://65.1.88.148:8000/api/v1/products/by-category-tree/?slug=$slug'),
+            'http://172.18.192.1:8000/api/v1/products/by-category-tree/?slug=$slug'),
       );
 
       if (response.statusCode == 200) {

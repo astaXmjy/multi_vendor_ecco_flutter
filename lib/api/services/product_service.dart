@@ -3,9 +3,63 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/models/product_model.dart';
+import '../../core/models/mobile_variant_model.dart';
 
 class ProductService {
-  final String baseUrl = 'http://65.1.88.148:8000/api/v1';
+  final String baseUrl = 'http://172.18.192.1:8000/api/v1';
+
+  // Get single product details by slug
+  Future<Map<String, dynamic>> getProductBySlug(String slug) async {
+    try {
+      final response =
+          await http.get(Uri.parse('$baseUrl/products/products/$slug/'));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'data': ProductModel.fromJson(data),
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Failed to load product details: ${response.statusCode}',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error fetching product details: $e',
+      };
+    }
+  }
+
+  // Get mobile variant selector data
+  Future<Map<String, dynamic>> getMobileVariantSelector(String slug) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/products/mobile-variant-selector/$slug/'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'data': MobileVariantSelector.fromJson(data),
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Failed to load variant data: ${response.statusCode}',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error fetching variant data: $e',
+      };
+    }
+  }
 
   // Fetch all products with optional parameters
   Future<Map<String, dynamic>> getProducts({
@@ -134,15 +188,25 @@ class ProductService {
             name: item['name'] ?? '',
             slug: item['slug'] ?? '',
             description: item['description'] ?? '',
+            shortDescription: item['short_description'] ?? '',
             category: item['category'] ?? '',
-            brand: BrandModel.empty(), // Fetch brand details later if needed
+            brand: BrandModel.empty(),
             regularPrice: item['regular_price'] ?? '0.00',
             salePrice: item['sale_price'] ?? '0.00',
+            costPrice: item['cost_price'] ?? '0.00',
             stockQuantity: item['stock_quantity'] ?? 0,
             isActive: item['is_active'] ?? false,
             isFeatured: true,
-            images: [], // We don't have image data in this response
+            images: [],
+            videos: [],
+            attributes: [],
+            reviews: [],
+            variants: [],
+            colorImages: {},
+            availableColors: [],
+            availableSizes: {},
             createdAt: '',
+            updatedAt: '',
           ));
         }
       } catch (e) {
@@ -151,32 +215,6 @@ class ProductService {
     }
 
     return products;
-  }
-
-  // Get single product details by slug
-  Future<Map<String, dynamic>> getProductBySlug(String slug) async {
-    try {
-      final response =
-          await http.get(Uri.parse('$baseUrl/products/products/$slug/'));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return {
-          'success': true,
-          'data': ProductModel.fromJson(data),
-        };
-      } else {
-        return {
-          'success': false,
-          'message': 'Failed to load product details: ${response.statusCode}',
-        };
-      }
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Error fetching product details: $e',
-      };
-    }
   }
 
   // Get products by category
@@ -189,7 +227,7 @@ class ProductService {
             'page': page.toString(),
             'limit': limit.toString()
           });
-      print('product by using category');
+
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {

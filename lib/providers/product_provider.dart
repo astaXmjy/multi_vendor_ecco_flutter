@@ -1,10 +1,11 @@
 // lib/providers/product_provider.dart
-import 'package:anu_app/api/services/category_service.dart';
-import 'package:anu_app/core/models/category_model.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:developer' as developer;
 import '../api/services/product_service.dart';
+import '../api/services/category_service.dart';
 import '../core/models/product_model.dart';
+import '../core/models/mobile_variant_model.dart';
+import '../core/models/category_model.dart';
 
 class ProductProvider with ChangeNotifier {
   final ProductService _productService = ProductService();
@@ -16,6 +17,17 @@ class ProductProvider with ChangeNotifier {
   List<ProductModel> _searchResults = [];
   List<ProductModel> _categoryProducts = [];
   List<ProductModel> _allProducts = [];
+  List<ProductModel> _categoryTreeProducts = [];
+  List<CategoryModel> _categoryTreeSubcategories = [];
+  List<CategoryModel> _categoryBreadcrumbs = [];
+
+  // New properties for variant support
+  ProductModel? _selectedProduct;
+  MobileVariantSelector? _selectedProductVariants;
+  bool _isLoadingProductDetails = false;
+  bool _isLoadingVariants = false;
+  String? _productDetailsError;
+  String? _variantsError;
 
   // Loading states
   bool _isLoadingFeatured = false;
@@ -24,6 +36,7 @@ class ProductProvider with ChangeNotifier {
   bool _isLoadingSearch = false;
   bool _isLoadingCategory = false;
   bool _isLoadingAllProducts = false;
+  bool _isLoadingCategoryTree = false;
 
   // Error messages
   String? _featuredError;
@@ -32,264 +45,148 @@ class ProductProvider with ChangeNotifier {
   String? _searchError;
   String? _categoryError;
   String? _allProductsError;
+  String? _categoryTreeError;
 
   // Pagination data
   int _categoryTotalCount = 0;
   String? _categoryNextPage;
   String? _categoryPreviousPage;
 
-  // Currently selected product
-  ProductModel? _selectedProduct;
-  bool _isLoadingProductDetails = false;
-  String? _productDetailsError;
-
-  // Getters
+  // Getters for product lists
   List<ProductModel> get featuredProducts => _featuredProducts;
   List<ProductModel> get newArrivals => _newArrivals;
   List<ProductModel> get bestSellers => _bestSellers;
   List<ProductModel> get searchResults => _searchResults;
   List<ProductModel> get categoryProducts => _categoryProducts;
   List<ProductModel> get allProducts => _allProducts;
+  List<ProductModel> get categoryTreeProducts => _categoryTreeProducts;
+  List<CategoryModel> get categoryTreeSubcategories =>
+      _categoryTreeSubcategories;
+  List<CategoryModel> get categoryBreadcrumbs => _categoryBreadcrumbs;
 
+  // Getters for variant support
+  ProductModel? get selectedProduct => _selectedProduct;
+  MobileVariantSelector? get selectedProductVariants =>
+      _selectedProductVariants;
+  bool get isLoadingProductDetails => _isLoadingProductDetails;
+  bool get isLoadingVariants => _isLoadingVariants;
+  String? get productDetailsError => _productDetailsError;
+  String? get variantsError => _variantsError;
+
+  // Getters for loading states
   bool get isLoadingFeatured => _isLoadingFeatured;
   bool get isLoadingNewArrivals => _isLoadingNewArrivals;
   bool get isLoadingBestSellers => _isLoadingBestSellers;
   bool get isLoadingSearch => _isLoadingSearch;
   bool get isLoadingCategory => _isLoadingCategory;
   bool get isLoadingAllProducts => _isLoadingAllProducts;
+  bool get isLoadingCategoryTree => _isLoadingCategoryTree;
 
+  // Getters for errors
   String? get featuredError => _featuredError;
   String? get newArrivalsError => _newArrivalsError;
   String? get bestSellersError => _bestSellersError;
   String? get searchError => _searchError;
   String? get categoryError => _categoryError;
   String? get allProductsError => _allProductsError;
+  String? get categoryTreeError => _categoryTreeError;
 
   int get categoryTotalCount => _categoryTotalCount;
   bool get hasMoreCategoryProducts => _categoryNextPage != null;
 
-  ProductModel? get selectedProduct => _selectedProduct;
-  bool get isLoadingProductDetails => _isLoadingProductDetails;
-  String? get productDetailsError => _productDetailsError;
-
-  // Add these properties and methods to your ProductProvider class
-
-  // Breadcrumbs for category navigation
-  List<CategoryModel> _categoryBreadcrumbs = [];
-
-  // Getter for breadcrumbs
-  List<CategoryModel> get categoryBreadcrumbs => _categoryBreadcrumbs;
-
-  // Set breadcrumbs
-  void setCategoryBreadcrumbs(List<CategoryModel> breadcrumbs) {
-    _categoryBreadcrumbs = breadcrumbs;
+  // Enhanced load product details with variants
+  Future<void> loadProductDetailsWithVariants(String slug) async {
+    _isLoadingProductDetails = true;
+    _isLoadingVariants = true;
+    _productDetailsError = null;
+    _variantsError = null;
+    _selectedProduct = null;
+    _selectedProductVariants = null;
     notifyListeners();
-  }
 
-  // Add category to breadcrumbs
-  void addCategoryToBreadcrumbs(CategoryModel category) {
-    if (!_categoryBreadcrumbs.any((item) => item.id == category.id)) {
-      _categoryBreadcrumbs.add(category);
-      notifyListeners();
-    }
-  }
-
-  // Set breadcrumbs up to a specific index
-  void setBreadcrumbsUpToIndex(int index) {
-    if (index >= 0 && index < _categoryBreadcrumbs.length) {
-      _categoryBreadcrumbs = _categoryBreadcrumbs.sublist(0, index + 1);
-      notifyListeners();
-    }
-  }
-
-  // Clear breadcrumbs
-  void clearBreadcrumbs() {
-    _categoryBreadcrumbs = [];
-    notifyListeners();
-  }
-
-  // Load category with breadcrumb info
-  Future<void> loadCategoryWithBreadcrumbs(String slug) async {
     try {
-      final categoryService = CategoryService();
-      final result = await categoryService.getCategoryBySlug(slug);
+      // Load product details and variants concurrently
+      final results = await Future.wait([
+        _productService.getProductBySlug(slug),
+        _productService.getMobileVariantSelector(slug),
+      ]);
 
-      if (result['success'] && result['data'] != null) {
-        // Check if there's breadcrumb info in the response
-        if (result['data']['breadcrumb'] != null &&
-            result['data']['breadcrumb'] is List) {
-          final breadcrumbData = result['data']['breadcrumb'] as List;
-          final breadcrumbs = breadcrumbData
-              .map((item) => CategoryModel.fromJson(item))
-              .toList();
+      final productResult = results[0];
+      final variantResult = results[1];
 
-          // Add current category if not already included
-          final currentCategory = CategoryModel.fromJson(result['data']);
-          if (!breadcrumbs.any((item) => item.id == currentCategory.id)) {
-            breadcrumbs.add(currentCategory);
-          }
+      _isLoadingProductDetails = false;
+      _isLoadingVariants = false;
 
-          setCategoryBreadcrumbs(breadcrumbs);
-        } else {
-          // If no breadcrumb info, just use the current category
-          final currentCategory = CategoryModel.fromJson(result['data']);
-          setCategoryBreadcrumbs([currentCategory]);
-        }
+      if (productResult['success']) {
+        _selectedProduct = productResult['data'];
+      } else {
+        _productDetailsError = productResult['message'];
       }
+
+      if (variantResult['success']) {
+        _selectedProductVariants = variantResult['data'];
+      } else {
+        _variantsError = variantResult['message'];
+        // Don't treat variant loading failure as critical
+        print('Warning: Could not load variants: ${variantResult['message']}');
+      }
+
+      notifyListeners();
     } catch (e) {
-      print('Error loading category breadcrumbs: $e');
+      _productDetailsError = e.toString();
+      _variantsError = e.toString();
+      _isLoadingProductDetails = false;
+      _isLoadingVariants = false;
+      notifyListeners();
     }
   }
 
-  // Add to the top with other properties
-  // Update the ProductProvider class with additional methods and properties
-
-  // Add to the top with other properties
-  List<ProductModel> _categoryTreeProducts = [];
-  List<CategoryModel> _categoryTreeSubcategories = [];
-  bool _isLoadingCategoryTree = false;
-  String? _categoryTreeError;
-
-  // Add to getters
-  List<ProductModel> get categoryTreeProducts => _categoryTreeProducts;
-  List<CategoryModel> get categoryTreeSubcategories =>
-      _categoryTreeSubcategories;
-  bool get isLoadingCategoryTree => _isLoadingCategoryTree;
-  String? get categoryTreeError => _categoryTreeError;
-
-  // Load products by category tree with complete details
-  Future<void> loadProductsByCategoryTree(String slug,
-      {bool refresh = true}) async {
-    if (refresh) {
-      _isLoadingCategoryTree = true;
-      _categoryTreeError = null;
-      _categoryTreeProducts = [];
-      _categoryTreeSubcategories = [];
-      notifyListeners();
-    }
+  // Load product details only (existing method, keep for backward compatibility)
+  Future<void> loadProductDetails(String slug) async {
+    _isLoadingProductDetails = true;
+    _productDetailsError = null;
+    notifyListeners();
 
     try {
-      final categoryService = CategoryService();
-      print('Fetching products for category: $slug');
-      final result = await categoryService.getProductsByCategoryTree(slug);
+      final result = await _productService.getProductBySlug(slug);
 
       if (result['success']) {
-        // Store subcategories
-        if (result.containsKey('subcategories')) {
-          _categoryTreeSubcategories =
-              List<CategoryModel>.from(result['subcategories']);
-        }
-
-        // Get basic product data
-        final List<Map<String, dynamic>> basicProducts =
-            List<Map<String, dynamic>>.from(result['basicProducts'] ?? []);
-        print('Fetched ${basicProducts.length} basic products');
-
-        if (basicProducts.isEmpty) {
-          _isLoadingCategoryTree = false;
-          notifyListeners();
-          return;
-        }
-
-        // Fetch full details for each product
-        List<ProductModel> completeProducts = [];
-
-        // Use ProductService to fetch complete details
-        final productService = ProductService();
-
-        // Fetch each product's complete details
-        for (var basicProduct in basicProducts) {
-          try {
-            final String slug = basicProduct['slug'];
-            final detailResult = await productService.getProductBySlug(slug);
-
-            if (detailResult['success'] && detailResult['data'] != null) {
-              completeProducts.add(detailResult['data']);
-            } else {
-              // If can't get detailed info, create simple product from basic info
-              final basicInfo = basicProduct['basicInfo'];
-              completeProducts.add(ProductModel(
-                id: basicInfo['id'] ?? 0,
-                name: basicInfo['name'] ?? '',
-                slug: basicInfo['slug'] ?? '',
-                description: basicInfo['description'] ?? '',
-                category: basicInfo['category']?.toString() ?? '',
-                brand: BrandModel.empty(),
-                regularPrice: basicInfo['regular_price']?.toString() ?? '0.00',
-                salePrice: basicInfo['sale_price']?.toString() ?? '0.00',
-                stockQuantity: basicInfo['stock_quantity'] ?? 0,
-                isActive: basicInfo['is_active'] ?? false,
-                isFeatured: basicInfo['is_featured'] ?? false,
-                images: [],
-                createdAt: basicInfo['created_at'] ?? '',
-              ));
-            }
-          } catch (e) {
-            print(
-                'Error fetching details for product ${basicProduct['slug']}: $e');
-            // Continue with next product
-          }
-        }
-
-        _categoryTreeProducts = completeProducts;
-        _isLoadingCategoryTree = false;
+        _selectedProduct = result['data'];
+        _isLoadingProductDetails = false;
         notifyListeners();
       } else {
-        print('Error fetching products: ${result['message']}');
-        _categoryTreeError = result['message'];
-        _isLoadingCategoryTree = false;
+        _productDetailsError = result['message'];
+        _isLoadingProductDetails = false;
         notifyListeners();
       }
     } catch (e) {
-      print('Exception in loadProductsByCategoryTree: $e');
-      _categoryTreeError = e.toString();
-      _isLoadingCategoryTree = false;
+      _productDetailsError = e.toString();
+      _isLoadingProductDetails = false;
       notifyListeners();
     }
   }
 
-  // Get all products or with specific parameters
-  Future<void> getProducts({
-    int page = 1,
-    int limit = 20,
-    String? category,
-    String? search,
-    String? ordering,
-    bool refresh = true,
-  }) async {
-    if (refresh) {
-      _isLoadingAllProducts = true;
-      _allProductsError = null;
-      _allProducts = [];
-      notifyListeners();
-    }
+  // Load variants separately if needed
+  Future<void> loadProductVariants(String slug) async {
+    _isLoadingVariants = true;
+    _variantsError = null;
+    notifyListeners();
 
     try {
-      final result = await _productService.getProducts(
-        page: page,
-        limit: limit,
-        category: category,
-        search: search,
-        ordering: ordering,
-      );
+      final result = await _productService.getMobileVariantSelector(slug);
 
       if (result['success']) {
-        if (refresh) {
-          _allProducts = List<ProductModel>.from(result['data']);
-        } else {
-          _allProducts.addAll(List<ProductModel>.from(result['data']));
-        }
-
-        _isLoadingAllProducts = false;
+        _selectedProductVariants = result['data'];
+        _isLoadingVariants = false;
         notifyListeners();
       } else {
-        _allProductsError = result['message'];
-        _isLoadingAllProducts = false;
+        _variantsError = result['message'];
+        _isLoadingVariants = false;
         notifyListeners();
       }
     } catch (e) {
-      _allProductsError = e.toString();
-      _isLoadingAllProducts = false;
+      _variantsError = e.toString();
+      _isLoadingVariants = false;
       notifyListeners();
     }
   }
@@ -394,6 +291,52 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
+  // Get all products or with specific parameters
+  Future<void> getProducts({
+    int page = 1,
+    int limit = 20,
+    String? category,
+    String? search,
+    String? ordering,
+    bool refresh = true,
+  }) async {
+    if (refresh) {
+      _isLoadingAllProducts = true;
+      _allProductsError = null;
+      _allProducts = [];
+      notifyListeners();
+    }
+
+    try {
+      final result = await _productService.getProducts(
+        page: page,
+        limit: limit,
+        category: category,
+        search: search,
+        ordering: ordering,
+      );
+
+      if (result['success']) {
+        if (refresh) {
+          _allProducts = List<ProductModel>.from(result['data']);
+        } else {
+          _allProducts.addAll(List<ProductModel>.from(result['data']));
+        }
+
+        _isLoadingAllProducts = false;
+        notifyListeners();
+      } else {
+        _allProductsError = result['message'];
+        _isLoadingAllProducts = false;
+        notifyListeners();
+      }
+    } catch (e) {
+      _allProductsError = e.toString();
+      _isLoadingAllProducts = false;
+      notifyListeners();
+    }
+  }
+
   // Load products by category
   Future<void> loadProductsByCategory(String categorySlug,
       {bool refresh = true}) async {
@@ -469,50 +412,168 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
-  // Load product details
-  Future<void> loadProductDetails(String slug) async {
-    _isLoadingProductDetails = true;
-    _productDetailsError = null;
-    notifyListeners();
+  // Load products by category tree with complete details
+  Future<void> loadProductsByCategoryTree(String slug,
+      {bool refresh = true}) async {
+    if (refresh) {
+      _isLoadingCategoryTree = true;
+      _categoryTreeError = null;
+      _categoryTreeProducts = [];
+      _categoryTreeSubcategories = [];
+      notifyListeners();
+    }
 
     try {
-      final result = await _productService.getProductBySlug(slug);
+      final categoryService = CategoryService();
+      print('Fetching products for category: $slug');
+      final result = await categoryService.getProductsByCategoryTree(slug);
 
       if (result['success']) {
-        _selectedProduct = result['data'];
-        _isLoadingProductDetails = false;
+        // Store subcategories
+        if (result.containsKey('subcategories')) {
+          _categoryTreeSubcategories =
+              List<CategoryModel>.from(result['subcategories']);
+        }
+
+        // Get basic product data
+        final List<Map<String, dynamic>> basicProducts =
+            List<Map<String, dynamic>>.from(result['basicProducts'] ?? []);
+        print('Fetched ${basicProducts.length} basic products');
+
+        if (basicProducts.isEmpty) {
+          _isLoadingCategoryTree = false;
+          notifyListeners();
+          return;
+        }
+
+        // Fetch full details for each product
+        List<ProductModel> completeProducts = [];
+
+        // Fetch each product's complete details
+        for (var basicProduct in basicProducts) {
+          try {
+            final String slug = basicProduct['slug'];
+            final detailResult = await _productService.getProductBySlug(slug);
+
+            if (detailResult['success'] && detailResult['data'] != null) {
+              completeProducts.add(detailResult['data']);
+            } else {
+              // If can't get detailed info, create simple product from basic info
+              final basicInfo = basicProduct['basicInfo'];
+              completeProducts.add(ProductModel(
+                id: basicInfo['id'] ?? 0,
+                name: basicInfo['name'] ?? '',
+                slug: basicInfo['slug'] ?? '',
+                description: basicInfo['description'] ?? '',
+                shortDescription: basicInfo['short_description'] ?? '',
+                category: basicInfo['category']?.toString() ?? '',
+                brand: BrandModel.empty(),
+                regularPrice: basicInfo['regular_price']?.toString() ?? '0.00',
+                salePrice: basicInfo['sale_price']?.toString() ?? '0.00',
+                costPrice: basicInfo['cost_price']?.toString() ?? '0.00',
+                stockQuantity: basicInfo['stock_quantity'] ?? 0,
+                isActive: basicInfo['is_active'] ?? false,
+                isFeatured: basicInfo['is_featured'] ?? false,
+                images: [],
+                videos: [],
+                attributes: [],
+                reviews: [],
+                variants: [],
+                colorImages: {},
+                availableColors: [],
+                availableSizes: {},
+                createdAt: basicInfo['created_at'] ?? '',
+                updatedAt: basicInfo['updated_at'] ?? '',
+              ));
+            }
+          } catch (e) {
+            print(
+                'Error fetching details for product ${basicProduct['slug']}: $e');
+            // Continue with next product
+          }
+        }
+
+        _categoryTreeProducts = completeProducts;
+        _isLoadingCategoryTree = false;
         notifyListeners();
       } else {
-        _productDetailsError = result['message'];
-        _isLoadingProductDetails = false;
+        print('Error fetching products: ${result['message']}');
+        _categoryTreeError = result['message'];
+        _isLoadingCategoryTree = false;
         notifyListeners();
       }
     } catch (e) {
-      _productDetailsError = e.toString();
-      _isLoadingProductDetails = false;
+      print('Exception in loadProductsByCategoryTree: $e');
+      _categoryTreeError = e.toString();
+      _isLoadingCategoryTree = false;
       notifyListeners();
     }
   }
 
-  // Convert product to map for product card
-  List<Map<String, dynamic>> convertProductsToCardMaps(
-      List<ProductModel> products) {
-    return products.map((product) => product.toCardMap()).toList();
+  // Breadcrumb management
+  void setCategoryBreadcrumbs(List<CategoryModel> breadcrumbs) {
+    _categoryBreadcrumbs = breadcrumbs;
+    notifyListeners();
   }
 
-  // Toggle wishlist status
+  void addCategoryToBreadcrumbs(CategoryModel category) {
+    if (!_categoryBreadcrumbs.any((item) => item.id == category.id)) {
+      _categoryBreadcrumbs.add(category);
+      notifyListeners();
+    }
+  }
+
+  void setBreadcrumbsUpToIndex(int index) {
+    if (index >= 0 && index < _categoryBreadcrumbs.length) {
+      _categoryBreadcrumbs = _categoryBreadcrumbs.sublist(0, index + 1);
+      notifyListeners();
+    }
+  }
+
+  void clearBreadcrumbs() {
+    _categoryBreadcrumbs = [];
+    notifyListeners();
+  }
+
+  Future<void> loadCategoryWithBreadcrumbs(String slug) async {
+    try {
+      final categoryService = CategoryService();
+      final result = await categoryService.getCategoryBySlug(slug);
+
+      if (result['success'] && result['data'] != null) {
+        // Check if there's breadcrumb info in the response
+        if (result['data']['breadcrumb'] != null &&
+            result['data']['breadcrumb'] is List) {
+          final breadcrumbData = result['data']['breadcrumb'] as List;
+          final breadcrumbs = breadcrumbData
+              .map((item) => CategoryModel.fromJson(item))
+              .toList();
+
+          // Add current category if not already included
+          final currentCategory = CategoryModel.fromJson(result['data']);
+          if (!breadcrumbs.any((item) => item.id == currentCategory.id)) {
+            breadcrumbs.add(currentCategory);
+          }
+
+          setCategoryBreadcrumbs(breadcrumbs);
+        } else {
+          // If no breadcrumb info, just use the current category
+          final currentCategory = CategoryModel.fromJson(result['data']);
+          setCategoryBreadcrumbs([currentCategory]);
+        }
+      }
+    } catch (e) {
+      print('Error loading category breadcrumbs: $e');
+    }
+  }
+
+  // Enhanced toggle wishlist with variant support
   void toggleWishlist(ProductModel product) {
-    // In a real app, this would call an API to add/remove from wishlist
-    // For now, we'll just update the local state
     final updatedProduct =
         product.copyWith(isWishlisted: !product.isWishlisted);
-
-    // Update product in all lists
     _updateProductInLists(updatedProduct);
-
     notifyListeners();
 
-    // Here you would also make the API call to update the server
     developer.log(
         'Toggled wishlist for product: ${product.name}, new status: ${!product.isWishlisted}');
   }
@@ -547,6 +608,13 @@ class ProductProvider with ChangeNotifier {
       _categoryProducts[categoryIndex] = updatedProduct;
     }
 
+    // Update in category tree products
+    final categoryTreeIndex =
+        _categoryTreeProducts.indexWhere((p) => p.id == updatedProduct.id);
+    if (categoryTreeIndex >= 0) {
+      _categoryTreeProducts[categoryTreeIndex] = updatedProduct;
+    }
+
     // Update in search results
     final searchIndex =
         _searchResults.indexWhere((p) => p.id == updatedProduct.id);
@@ -567,6 +635,12 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
+  // Convert product to map for product card
+  List<Map<String, dynamic>> convertProductsToCardMaps(
+      List<ProductModel> products) {
+    return products.map((product) => product.toCardMap()).toList();
+  }
+
   // Clear errors
   void clearErrors() {
     _featuredError = null;
@@ -576,6 +650,17 @@ class ProductProvider with ChangeNotifier {
     _categoryError = null;
     _allProductsError = null;
     _productDetailsError = null;
+    _variantsError = null;
+    _categoryTreeError = null;
+    notifyListeners();
+  }
+
+  // Clear selected product data
+  void clearSelectedProduct() {
+    _selectedProduct = null;
+    _selectedProductVariants = null;
+    _productDetailsError = null;
+    _variantsError = null;
     notifyListeners();
   }
 }

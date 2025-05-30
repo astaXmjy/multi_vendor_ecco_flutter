@@ -1,12 +1,12 @@
 // lib/presentation/pages/product/product_detail_page.dart
-import 'package:anu_app/api/services/category_service.dart';
-import 'package:anu_app/core/models/breadcrumb_model.dart';
-import 'package:go_router/go_router.dart';
-import 'package:anu_app/presentation/pages/product/product_details_content.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../../api/services/category_service.dart';
+import '../../../core/models/breadcrumb_model.dart';
 import '../../../providers/product_provider.dart';
 import '../shared/custom_app_bar.dart';
+import 'enhanced_product_details_content.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final String slug;
@@ -22,6 +22,7 @@ class ProductDetailPage extends StatefulWidget {
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
   List<BreadcrumbModel> _breadcrumbs = [];
+
   @override
   void initState() {
     super.initState();
@@ -70,13 +71,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Future<void> _loadProductDetails() async {
     final productProvider =
         Provider.of<ProductProvider>(context, listen: false);
-    await productProvider.loadProductDetails(widget.slug);
+
+    // Load product details with variants
+    await productProvider.loadProductDetailsWithVariants(widget.slug);
 
     // After product loads, fetch category details
     if (mounted && productProvider.selectedProduct != null) {
       final categorySlug = productProvider.selectedProduct!.category;
       if (categorySlug.isNotEmpty) {
-        print(categorySlug);
         _loadCategoryDetails(categorySlug);
       }
     }
@@ -110,47 +112,60 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       ),
       body: Consumer<ProductProvider>(
         builder: (context, productProvider, child) {
+          // Show loading state
           if (productProvider.isLoadingProductDetails) {
             return const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFFFF7A2E),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    color: Color(0xFFFF7A2E),
+                  ),
+                  SizedBox(height: 16),
+                  Text('Loading product details...'),
+                ],
               ),
             );
           }
 
+          // Show error state
           if (productProvider.productDetailsError != null) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    color: Colors.red,
-                    size: 48,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Failed to load product details',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    productProvider.productDetailsError!,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: _loadProductDetails,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF7A2E),
-                      foregroundColor: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 48,
                     ),
-                    child: const Text('Try Again'),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    Text(
+                      'Failed to load product details',
+                      style: Theme.of(context).textTheme.titleLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      productProvider.productDetailsError!,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: _loadProductDetails,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF7A2E),
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Try Again'),
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -162,13 +177,91 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             );
           }
 
-          return ProductDetailsContent(
+          // Show variants loading indicator if still loading
+          Widget content = EnhancedProductDetailsContent(
             product: product,
+            variantData: productProvider.selectedProductVariants,
             breadcrumbs: _breadcrumbs,
             onWishlistToggle: () => productProvider.toggleWishlist(product),
           );
+
+          // Overlay loading indicator for variants if needed
+          if (productProvider.isLoadingVariants) {
+            content = Stack(
+              children: [
+                content,
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Loading variants...',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          // Show variant error if exists (non-critical)
+          if (productProvider.variantsError != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Could not load product variants: ${productProvider.variantsError}',
+                    ),
+                    backgroundColor: Colors.orange,
+                    duration: const Duration(seconds: 3),
+                    action: SnackBarAction(
+                      label: 'Retry',
+                      textColor: Colors.white,
+                      onPressed: () {
+                        productProvider.loadProductVariants(widget.slug);
+                      },
+                    ),
+                  ),
+                );
+              }
+            });
+          }
+
+          return content;
         },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    // Clear selected product data when leaving the page
+    final productProvider =
+        Provider.of<ProductProvider>(context, listen: false);
+    productProvider.clearSelectedProduct();
+    super.dispose();
   }
 }
