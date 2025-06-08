@@ -93,33 +93,23 @@ class _EnhancedProductDetailsContentState
 
   void _addToCart() {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-
-    // Create a modified product for cart with selected variant info
-    final cartProduct = widget.product.copyWith(
-      salePrice: _selectedPrice?.toString() ?? widget.product.salePrice,
-    );
-
-    Map<String, String>? selectedOptions;
-    if (_selectedColor != null || _selectedSize != null) {
-      selectedOptions = {};
-      if (_selectedColor != null) {
-        selectedOptions['Color'] = widget.variantData?.colors
-                .firstWhere((c) => c.colorValue == _selectedColor)
-                .colorDisplay ??
-            _selectedColor!;
-      }
-      if (_selectedSize != null) {
-        selectedOptions['Size'] = _selectedSize!;
-      }
+    
+    // Get the selected variant price if available
+    double? selectedPrice;
+    if (_selectedPrice != null) {
+      selectedPrice = _selectedPrice;
+    } else {
+      selectedPrice = double.tryParse(widget.product.salePrice) ?? 
+                     double.tryParse(widget.product.regularPrice) ?? 0.0;
     }
-
+  
     cartProvider.addItem(
-      cartProduct,
+      widget.product,
       quantity: 1,
       variantId: _selectedVariantId?.toString(),
-      selectedOptions: selectedOptions,
+      price: selectedPrice,
     );
-
+  
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('Added to cart'),

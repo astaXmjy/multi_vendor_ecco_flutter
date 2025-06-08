@@ -212,9 +212,16 @@ class ProductGridItem extends StatelessWidget {
                           child: TextButton.icon(
                             onPressed: () {
                               final cartProvider = Provider.of<CartProvider>(
-                                  context,
-                                  listen: false);
-                              cartProvider.addItem(product);
+                                  context, listen: false);
+                              
+                              // Use the updated addItem method with proper parameters
+                              cartProvider.addItem(
+                                product,
+                                quantity: 1,
+                                price: double.tryParse(product.salePrice) ?? 
+                                       double.tryParse(product.regularPrice) ?? 0.0,
+                              );
+                              
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: const Text('Added to cart'),

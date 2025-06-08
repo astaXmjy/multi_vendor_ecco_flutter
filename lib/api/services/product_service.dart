@@ -6,7 +6,7 @@ import '../../core/models/product_model.dart';
 import '../../core/models/mobile_variant_model.dart';
 
 class ProductService {
-  final String baseUrl = 'http://172.18.192.1:8000/api/v1';
+  final String baseUrl = 'http://3.6.174.34:8000/api/v1';
 
   // Get single product details by slug
   Future<Map<String, dynamic>> getProductBySlug(String slug) async {

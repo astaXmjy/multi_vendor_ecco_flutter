@@ -8,8 +8,21 @@ import '../shared/custom_bottom_nav.dart';
 import 'widgets/cart_item_card.dart';
 import 'widgets/empty_cart.dart';
 
-class CartPage extends StatelessWidget {
+class CartPage extends StatefulWidget {
   const CartPage({Key? key}) : super(key: key);
+
+  @override
+  State<CartPage> createState() => _CartPageState();
+}
+
+class _CartPageState extends State<CartPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Fetch cart items when page loads
+    Future.microtask(() =>
+        Provider.of<CartProvider>(context, listen: false).fetchCartItems());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,10 +33,53 @@ class CartPage extends StatelessWidget {
       ),
       body: Consumer<CartProvider>(
         builder: (context, cartProvider, child) {
+          // Show loading indicator
+          if (cartProvider.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFFFF7A2E),
+              ),
+            );
+          }
+
+          // Show error message
+          if (cartProvider.error != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.red,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error loading cart',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(cartProvider.error!),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => cartProvider.fetchCartItems(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF7A2E),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Try Again'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          // Show empty cart
           if (cartProvider.items.isEmpty) {
             return const EmptyCart();
           }
 
+          // Show cart items
           return Column(
             children: [
               // Cart items list
@@ -84,20 +140,25 @@ class CartPage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-
                     // Checkout button
-                    ElevatedButton(
-                      onPressed: () {
-                        context.push('/checkout');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF7A2E),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text(
-                        'Proceed to Checkout',
-                        style: TextStyle(fontSize: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          context.push('/checkout');
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF7A2E),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: const Text(
+                          'PROCEED TO CHECKOUT',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ],

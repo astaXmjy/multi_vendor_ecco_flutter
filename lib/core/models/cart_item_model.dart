@@ -1,44 +1,104 @@
 // lib/core/models/cart_item_model.dart
 class CartItem {
-  final String id;
+  final int id;
   final String productId;
-  final String name;
-  final String imageUrl;
-  final double price;
-  final int quantity;
   final String? variantId;
-  final Map<String, String>? selectedOptions;
+  final int quantity;
+  final double price;
+  final double totalPrice;
+  final ProductInfo? productInfo;
+  final String addedAt;
+  final String updatedAt;
 
   CartItem({
     required this.id,
     required this.productId,
-    required this.name,
-    required this.imageUrl,
-    required this.price,
-    required this.quantity,
     this.variantId,
-    this.selectedOptions,
+    required this.quantity,
+    required this.price,
+    required this.totalPrice,
+    this.productInfo,
+    required this.addedAt,
+    required this.updatedAt,
   });
 
+  factory CartItem.fromJson(Map<String, dynamic> json) {
+    return CartItem(
+      id: json['id'] ?? 0,
+      productId: json['product_id']?.toString() ?? '',
+      variantId: json['variant_id']?.toString(),
+      quantity: json['quantity'] ?? 0,
+      price: double.tryParse(json['price']?.toString() ?? '0') ?? 0.0,
+      totalPrice: double.tryParse(json['total_price']?.toString() ?? '0') ?? 0.0,
+      productInfo: json['product_info'] != null 
+          ? ProductInfo.fromJson(json['product_info']) 
+          : null,
+      addedAt: json['added_at'] ?? '',
+      updatedAt: json['updated_at'] ?? '',
+    );
+  }
+
   CartItem copyWith({
-    String? id,
+    int? id,
     String? productId,
-    String? name,
-    String? imageUrl,
-    double? price,
-    int? quantity,
     String? variantId,
-    Map<String, String>? selectedOptions,
+    int? quantity,
+    double? price,
+    double? totalPrice,
+    ProductInfo? productInfo,
+    String? addedAt,
+    String? updatedAt,
   }) {
     return CartItem(
       id: id ?? this.id,
       productId: productId ?? this.productId,
-      name: name ?? this.name,
-      imageUrl: imageUrl ?? this.imageUrl,
-      price: price ?? this.price,
-      quantity: quantity ?? this.quantity,
       variantId: variantId ?? this.variantId,
-      selectedOptions: selectedOptions ?? this.selectedOptions,
+      quantity: quantity ?? this.quantity,
+      price: price ?? this.price,
+      totalPrice: totalPrice ?? this.totalPrice,
+      productInfo: productInfo ?? this.productInfo,
+      addedAt: addedAt ?? this.addedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  // Helper getters
+  String get name => productInfo?.name ?? 'Product';
+  String get imageUrl => productInfo?.image ?? '';
+  bool get isAvailable => productInfo?.isAvailable ?? false;
+  double get regularPrice => productInfo?.regularPrice ?? 0.0;
+  double get salePrice => productInfo?.salePrice ?? 0.0;
+  bool get hasDiscount => salePrice > 0 && salePrice < regularPrice;
+}
+
+class ProductInfo {
+  final String id;
+  final String name;
+  final String slug;
+  final String? image;
+  final double regularPrice;
+  final double salePrice;
+  final bool isAvailable;
+
+  ProductInfo({
+    required this.id,
+    required this.name,
+    required this.slug,
+    this.image,
+    required this.regularPrice,
+    required this.salePrice,
+    required this.isAvailable,
+  });
+
+  factory ProductInfo.fromJson(Map<String, dynamic> json) {
+    return ProductInfo(
+      id: json['id']?.toString() ?? '',
+      name: json['name'] ?? '',
+      slug: json['slug'] ?? '',
+      image: json['image'],
+      regularPrice: double.tryParse(json['regular_price']?.toString() ?? '0') ?? 0.0,
+      salePrice: double.tryParse(json['sale_price']?.toString() ?? '0') ?? 0.0,
+      isAvailable: json['is_available'] ?? false,
     );
   }
 }
