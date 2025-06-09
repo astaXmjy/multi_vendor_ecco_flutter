@@ -1,4 +1,5 @@
 // lib/presentation/pages/product/products_page.dart
+import 'package:anu_app/config/routes.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/models/product_model.dart';
@@ -6,6 +7,7 @@ import '../../../providers/product_provider.dart';
 import '../shared/custom_app_bar.dart';
 import 'widgets/product_grid_item.dart';
 import 'widgets/product_list_item.dart';
+import 'package:go_router/go_router.dart';
 
 class ProductsPage extends StatefulWidget {
   final String title;
@@ -90,10 +92,7 @@ class _ProductsPageState extends State<ProductsPage> {
   }
 
   void _navigateToProductDetails(ProductModel product) {
-    Navigator.pushNamed(
-      context,
-      '/product/${product.slug}',
-    );
+    context.push('/product/${product.slug}');
   }
 
   @override

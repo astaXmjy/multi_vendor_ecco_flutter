@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_html/flutter_html.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/breadcrumb_model.dart';
 import '../../../core/models/product_model.dart';
 import '../../../core/models/mobile_variant_model.dart';
@@ -36,6 +38,7 @@ class _EnhancedProductDetailsContentState
   int? _selectedVariantId;
   double? _selectedPrice;
   List<ImageModel> _currentImages = [];
+  bool _isDescriptionExpanded = false;
 
   @override
   void initState() {
@@ -54,7 +57,6 @@ class _EnhancedProductDetailsContentState
 
   void _updateCurrentImages() {
     if (_selectedColor != null) {
-      // Use color-specific images if available
       final colorImages = widget.product.getImagesForColor(_selectedColor);
       setState(() {
         _currentImages = colorImages;
@@ -93,23 +95,23 @@ class _EnhancedProductDetailsContentState
 
   void _addToCart() {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    
-    // Get the selected variant price if available
+
     double? selectedPrice;
     if (_selectedPrice != null) {
       selectedPrice = _selectedPrice;
     } else {
-      selectedPrice = double.tryParse(widget.product.salePrice) ?? 
-                     double.tryParse(widget.product.regularPrice) ?? 0.0;
+      selectedPrice = double.tryParse(widget.product.salePrice) ??
+          double.tryParse(widget.product.regularPrice) ??
+          0.0;
     }
-  
+
     cartProvider.addItem(
       widget.product,
       quantity: 1,
       variantId: _selectedVariantId?.toString(),
       price: selectedPrice,
     );
-  
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('Added to cart'),
@@ -201,7 +203,6 @@ class _EnhancedProductDetailsContentState
   Widget _buildStockInfo() {
     int stockQuantity = widget.product.stockQuantity;
 
-    // If a specific variant is selected, use its stock
     if (_selectedColor != null &&
         _selectedSize != null &&
         widget.variantData != null) {
@@ -249,6 +250,264 @@ class _EnhancedProductDetailsContentState
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHtmlDescription() {
+    if (widget.product.description.isEmpty) {
+      return const Text(
+        'No description available for this product.',
+        style: TextStyle(
+          fontSize: 14,
+          height: 1.6,
+          color: Colors.grey,
+          fontStyle: FontStyle.italic,
+        ),
+      );
+    }
+
+    // Check if content is HTML by looking for HTML tags
+    final bool isHtml = widget.product.description.contains('<') &&
+        widget.product.description.contains('>');
+
+    if (!isHtml) {
+      // If it's plain text, display normally
+      return Text(
+        widget.product.description,
+        style: const TextStyle(
+          fontSize: 14,
+          height: 1.6,
+        ),
+      );
+    }
+
+    // For HTML content, use flutter_html package
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          height: _isDescriptionExpanded ? null : 200,
+          child: SingleChildScrollView(
+            physics: _isDescriptionExpanded
+                ? const AlwaysScrollableScrollPhysics()
+                : const NeverScrollableScrollPhysics(),
+            child: Html(
+              data: widget.product.description,
+              style: {
+                "body": Style(
+                  margin: Margins.zero,
+                  padding: HtmlPaddings.zero,
+                  fontSize: FontSize(14),
+                  lineHeight: const LineHeight(1.6),
+                  color: Colors.black87,
+                ),
+                "p": Style(
+                  margin: Margins.only(bottom: 12),
+                  fontSize: FontSize(14),
+                  lineHeight: const LineHeight(1.6),
+                ),
+                "h1, h2, h3, h4, h5, h6": Style(
+                  margin: Margins.only(top: 16, bottom: 8),
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFFFF7A2E),
+                ),
+                "h1": Style(fontSize: FontSize(22)),
+                "h2": Style(fontSize: FontSize(20)),
+                "h3": Style(fontSize: FontSize(18)),
+                "h4": Style(fontSize: FontSize(16)),
+                "ul, ol": Style(
+                  margin: Margins.only(left: 16, bottom: 12),
+                ),
+                "li": Style(
+                  margin: Margins.only(bottom: 4),
+                ),
+                "strong, b": Style(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+                "em, i": Style(
+                  fontStyle: FontStyle.italic,
+                ),
+                "a": Style(
+                  color: const Color(0xFFFF7A2E),
+                  textDecoration: TextDecoration.underline,
+                ),
+                "blockquote": Style(
+                  margin: Margins.symmetric(vertical: 12),
+                  padding: HtmlPaddings.only(left: 16),
+                  border: const Border(
+                    left: BorderSide(
+                      color: Color(0xFFFF7A2E),
+                      width: 4,
+                    ),
+                  ),
+                  backgroundColor: Colors.grey.shade50,
+                ),
+                "code": Style(
+                  backgroundColor: Colors.grey.shade100,
+                  padding: HtmlPaddings.symmetric(horizontal: 4, vertical: 2),
+                  fontFamily: 'monospace',
+                  fontSize: FontSize(13),
+                ),
+                "pre": Style(
+                  backgroundColor: Colors.grey.shade100,
+                  padding: HtmlPaddings.all(12),
+                  margin: Margins.symmetric(vertical: 8),
+                  display: Display.block,
+                ),
+                "table": Style(
+                  border: Border.all(color: Colors.grey.shade300),
+                  margin: Margins.symmetric(vertical: 12),
+                ),
+                "th, td": Style(
+                  border: Border.all(color: Colors.grey.shade300),
+                  padding: HtmlPaddings.all(8),
+                ),
+                "th": Style(
+                  backgroundColor: Colors.grey.shade100,
+                  fontWeight: FontWeight.bold,
+                ),
+              },
+              onLinkTap: (url, attributes, element) async {
+                if (url != null) {
+                  final uri = Uri.parse(url);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(
+                      uri,
+                      mode: LaunchMode.externalApplication,
+                    );
+                  }
+                }
+              },
+              extensions: [
+                TagExtension(
+                  tagsToExtend: {"img"},
+                  builder: (extensionContext) {
+                    final src = extensionContext.attributes['src'];
+                    if (src != null) {
+                      return GestureDetector(
+                        onTap: () {
+                          // Show image in fullscreen dialog
+                          showDialog(
+                            context: context,
+                            builder: (context) => Dialog(
+                              backgroundColor: Colors.black,
+                              child: Stack(
+                                children: [
+                                  Center(
+                                    child: InteractiveViewer(
+                                      child: Image.network(
+                                        src,
+                                        fit: BoxFit.contain,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const Icon(
+                                          Icons.error,
+                                          color: Colors.white,
+                                          size: 50,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.close,
+                                        color: Colors.white,
+                                        size: 30,
+                                      ),
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              src,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                height: 200,
+                                color: Colors.grey.shade100,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.broken_image,
+                                    color: Colors.grey,
+                                    size: 50,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Show/Hide button if content is long
+        if (widget.product.description.length > 500) ...[
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isDescriptionExpanded = !_isDescriptionExpanded;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF7A2E).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: const Color(0xFFFF7A2E).withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _isDescriptionExpanded ? 'Show Less' : 'Show More',
+                    style: const TextStyle(
+                      color: Color(0xFFFF7A2E),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    _isDescriptionExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: const Color(0xFFFF7A2E),
+                    size: 18,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -351,7 +610,7 @@ class _EnhancedProductDetailsContentState
                       if (widget.variantData != null)
                         const SizedBox(height: 20),
 
-                      // Description section
+                      // Description section with HTML support
                       const Text(
                         'Description',
                         style: TextStyle(
@@ -359,16 +618,8 @@ class _EnhancedProductDetailsContentState
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        widget.product.description.isNotEmpty
-                            ? widget.product.description
-                            : 'No description available for this product.',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          height: 1.6,
-                        ),
-                      ),
+                      const SizedBox(height: 12),
+                      _buildHtmlDescription(),
 
                       const SizedBox(height: 20),
 
@@ -441,36 +692,53 @@ class _EnhancedProductDetailsContentState
                           ),
                         ),
                         const SizedBox(height: 12),
-                        ...widget.product.attributes
-                            .where((attr) => attr.isVisible)
-                            .map((attr) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 8.0),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      SizedBox(
-                                        width: 120,
-                                        child: Text(
-                                          '${attr.displayValue}:',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.grey[700],
+                        Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            children: widget.product.attributes
+                                .where((attr) => attr.isVisible)
+                                .map((attr) => Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                          bottom: BorderSide(
+                                            color: Colors.grey.shade200,
+                                            width: 0.5,
                                           ),
                                         ),
                                       ),
-                                      Expanded(
-                                        child: Text(
-                                          attr.value,
-                                          style: const TextStyle(
-                                            fontSize: 14,
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          SizedBox(
+                                            width: 120,
+                                            child: Text(
+                                              '${attr.displayValue}:',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.grey[700],
+                                              ),
+                                            ),
                                           ),
-                                        ),
+                                          Expanded(
+                                            child: Text(
+                                              attr.value,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                )),
+                                    ))
+                                .toList(),
+                          ),
+                        ),
                         const SizedBox(height: 20),
                       ],
 

@@ -125,7 +125,6 @@ class ProductService {
     return getProducts(ordering: '-order_count', limit: limit);
   }
 
-  // Get featured products
   Future<Map<String, dynamic>> getFeaturedProducts({int limit = 10}) async {
     try {
       final uri = Uri.parse('$baseUrl/products/featured/');
@@ -136,24 +135,43 @@ class ProductService {
         'Content-Type': 'application/json',
       };
 
-      // Add authorization header if token exists
-      if (token != null) {
-        headers['Authorization'] = 'Token $token';
-      }
-
       final response = await http.get(uri, headers: headers);
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final dynamic decodedData = json.decode(response.body);
+        print(response.body);
 
-        // Process the featured products which have a simpler structure
-        final products = await _processSimplifiedProducts(data);
+        // Check if the response is a Map or List
+        if (decodedData is Map<String, dynamic>) {
+          // If it's a Map, extract the results array
+          final List<dynamic> data =
+              decodedData['results'] ?? decodedData['data'] ?? [];
 
-        return {
-          'success': true,
-          'data': products,
-          'count': products.length,
-        };
+          // Process the featured products
+          final products = await _processSimplifiedProducts(data);
+
+          return {
+            'success': true,
+            'data': products,
+            'count': decodedData['count'] ?? products.length,
+            'next': decodedData['next'],
+            'previous': decodedData['previous'],
+          };
+        } else if (decodedData is List<dynamic>) {
+          // If it's already a List, process directly
+          final products = await _processSimplifiedProducts(decodedData);
+
+          return {
+            'success': true,
+            'data': products,
+            'count': products.length,
+          };
+        } else {
+          return {
+            'success': false,
+            'message': 'Unexpected response format from featured products API',
+          };
+        }
       } else {
         return {
           'success': false,
@@ -161,6 +179,7 @@ class ProductService {
         };
       }
     } catch (e) {
+      print('Error in getFeaturedProducts: $e');
       return {
         'success': false,
         'message': 'Error fetching featured products: $e',

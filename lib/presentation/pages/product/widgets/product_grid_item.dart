@@ -20,69 +20,86 @@ class ProductGridItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
               color: Colors.grey.withOpacity(0.1),
               spreadRadius: 1,
-              blurRadius: 3,
-              offset: const Offset(0, 1),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product image and badges - fixed height with aspect ratio
-            AspectRatio(
-              aspectRatio: 1,
+            // Product image section - using Flexible instead of AspectRatio
+            Flexible(
+              flex: 3,
               child: Stack(
                 children: [
-                  // Product image
                   ClipRRect(
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(10),
-                      topRight: Radius.circular(10),
+                      topLeft: Radius.circular(12),
+                      topRight: Radius.circular(12),
                     ),
                     child: Container(
                       width: double.infinity,
                       height: double.infinity,
-                      color: Colors.grey[200],
+                      color: Colors.grey[100],
                       child: product.primaryImageUrl.isNotEmpty
                           ? Image.network(
                               product.primaryImageUrl,
                               fit: BoxFit.cover,
-                              errorBuilder: (ctx, error, _) => Icon(
-                                Icons.image,
-                                color: Colors.grey[400],
-                                size: 40,
+                              errorBuilder: (ctx, error, _) => Container(
+                                color: Colors.grey[100],
+                                child: Icon(
+                                  Icons.image,
+                                  color: Colors.grey[400],
+                                  size: isSmallScreen ? 30 : 40,
+                                ),
                               ),
                               loadingBuilder:
                                   (context, child, loadingProgress) {
                                 if (loadingProgress == null) return child;
-                                return Center(
-                                  child: CircularProgressIndicator(
-                                    value: loadingProgress.expectedTotalBytes !=
-                                            null
-                                        ? loadingProgress
-                                                .cumulativeBytesLoaded /
-                                            loadingProgress.expectedTotalBytes!
-                                        : null,
-                                    color: const Color(0xFFFF7A2E),
-                                    strokeWidth: 2,
+                                return Container(
+                                  color: Colors.grey[100],
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: const Color(0xFFFF7A2E),
+                                        value: loadingProgress
+                                                    .expectedTotalBytes !=
+                                                null
+                                            ? loadingProgress
+                                                    .cumulativeBytesLoaded /
+                                                loadingProgress
+                                                    .expectedTotalBytes!
+                                            : null,
+                                      ),
+                                    ),
                                   ),
                                 );
                               },
                             )
-                          : Icon(
-                              Icons.image,
-                              color: Colors.grey[400],
-                              size: 40,
+                          : Container(
+                              color: Colors.grey[100],
+                              child: Icon(
+                                Icons.image,
+                                color: Colors.grey[400],
+                                size: isSmallScreen ? 30 : 40,
+                              ),
                             ),
                     ),
                   ),
@@ -91,21 +108,21 @@ class ProductGridItem extends StatelessWidget {
                   if (product.discountPercentage.isNotEmpty)
                     Positioned(
                       top: 8,
-                      right: 8,
+                      left: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isSmallScreen ? 6 : 8,
+                          vertical: isSmallScreen ? 2 : 4,
                         ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFF4947),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          product.discountPercentage,
-                          style: const TextStyle(
+                          '${product.discountPercentage}% OFF',
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 12,
+                            fontSize: isSmallScreen ? 8 : 10,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -115,14 +132,21 @@ class ProductGridItem extends StatelessWidget {
                   // Wishlist button
                   Positioned(
                     top: 8,
-                    left: 8,
-                    child: InkWell(
+                    right: 8,
+                    child: GestureDetector(
                       onTap: onWishlistTap,
                       child: Container(
-                        padding: const EdgeInsets.all(5),
+                        padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withOpacity(0.9),
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Icon(
                           product.isWishlisted
@@ -130,8 +154,8 @@ class ProductGridItem extends StatelessWidget {
                               : Icons.favorite_border,
                           color: product.isWishlisted
                               ? const Color(0xFFFF4947)
-                              : Colors.grey,
-                          size: 18,
+                              : Colors.grey[600],
+                          size: isSmallScreen ? 16 : 18,
                         ),
                       ),
                     ),
@@ -140,121 +164,64 @@ class ProductGridItem extends StatelessWidget {
               ),
             ),
 
-            // Product info - use remaining height with flexible layout
-            Expanded(
+            // Product info section - using Flexible for better space management
+            Flexible(
+              flex: 2,
               child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Product name
-                        Text(
-                          product.name,
-                          style: const TextStyle(
-                            fontSize: 13, // Smaller for more space
-                            fontWeight: FontWeight.w500,
+                padding: EdgeInsets.all(isSmallScreen ? 8.0 : 10.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Product name - fixed height to prevent overflow
+                    SizedBox(
+                      height: isSmallScreen ? 28 : 32,
+                      child: Text(
+                        product.name,
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 11 : 13,
+                          fontWeight: FontWeight.w600,
+                          height: 1.2,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+
+                    // Seller name (optional, only on larger screens)
+                    if (!isSmallScreen && product.sellerInfo != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          'by ${product.sellerInfo!.userName}',
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: Colors.grey[600],
                           ),
-                          maxLines: 1, // Limit to 1 line to save space
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                      ),
 
-                        // Seller name if available (optional)
-                        if (product.sellerInfo != null &&
-                            constraints.maxHeight > 60)
-                          Text(
-                            'by ${product.sellerInfo!.userName}',
-                            style: TextStyle(
-                              fontSize: 9, // Even smaller
-                              color: Colors.grey[600],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                    const Spacer(),
 
-                        const Spacer(), // Push remaining content to bottom
-
-                        // Price row
-                        Row(
-                          children: [
-                            Text(
-                              product.formattedSalePrice,
-                              style: const TextStyle(
-                                fontSize: 13, // Smaller
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFFF7A2E),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            if (product.discountPercentage.isNotEmpty)
-                              Expanded(
-                                child: Text(
-                                  product.formattedRegularPrice,
-                                  style: TextStyle(
-                                    fontSize: 10, // Smaller
-                                    fontWeight: FontWeight.w400,
-                                    color: Colors.grey[600],
-                                    decoration: TextDecoration.lineThrough,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 2), // Minimal spacing
-
-                        // Add to Cart button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 22, // Fixed small height
-                          child: TextButton.icon(
-                            onPressed: () {
-                              final cartProvider = Provider.of<CartProvider>(
-                                  context, listen: false);
-                              
-                              // Use the updated addItem method with proper parameters
-                              cartProvider.addItem(
-                                product,
-                                quantity: 1,
-                                price: double.tryParse(product.salePrice) ?? 
-                                       double.tryParse(product.regularPrice) ?? 0.0,
-                              );
-                              
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text('Added to cart'),
-                                  backgroundColor: Colors.green,
-                                  action: SnackBarAction(
-                                    label: 'VIEW',
-                                    textColor: Colors.white,
-                                    onPressed: () {
-                                      context.push('/cart');
-                                    },
-                                  ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(
-                              Icons.add_shopping_cart,
-                              size: 12, // Very small icon
-                            ),
-                            label: const Text(
-                              'Add to Cart',
-                              style: TextStyle(fontSize: 10), // Very small text
-                            ),
-                            style: TextButton.styleFrom(
-                              foregroundColor: const Color(0xFFFF7A2E),
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
+                    // Price section
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Current price
+                        Text(
+                          product.formattedSalePrice,
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 12 : 14,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFFF7A2E),
                           ),
                         ),
                       ],
-                    );
-                  },
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -262,5 +229,12 @@ class ProductGridItem extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// Enhanced navigation function for product details
+extension ProductNavigation on ProductGridItem {
+  void navigateToProductDetails(BuildContext context) {
+    context.push('/product/${product.slug}');
   }
 }
