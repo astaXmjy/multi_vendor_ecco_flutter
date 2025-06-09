@@ -1,10 +1,12 @@
 // lib/presentation/pages/product/widgets/product_grid_item.dart
 import 'package:anu_app/main.dart';
 import 'package:anu_app/providers/cart_provider.dart';
+import 'package:anu_app/providers/product_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/models/product_model.dart';
+import '../../../../providers/wishlist_provider.dart';
 
 class ProductGridItem extends StatelessWidget {
   final ProductModel product;
@@ -130,34 +132,46 @@ class ProductGridItem extends StatelessWidget {
                     ),
 
                   // Wishlist button
+// New wishlist button with API integration
                   Positioned(
                     top: 8,
                     right: 8,
-                    child: GestureDetector(
-                      onTap: onWishlistTap,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                    child: Consumer<WishlistProvider>(
+                      builder: (context, wishlistProvider, child) {
+                        final isWishlisted = wishlistProvider
+                            .isInWishlist(product.id.toString());
+
+                        return InkWell(
+                          onTap: () async {
+                            await Provider.of<ProductProvider>(context,
+                                    listen: false)
+                                .toggleWishlist(product, context);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.9),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  spreadRadius: 1,
+                                  blurRadius: 2,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: Icon(
-                          product.isWishlisted
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          color: product.isWishlisted
-                              ? const Color(0xFFFF4947)
-                              : Colors.grey[600],
-                          size: isSmallScreen ? 16 : 18,
-                        ),
-                      ),
+                            child: Icon(
+                              isWishlisted
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: isWishlisted
+                                  ? const Color(0xFFFF4947)
+                                  : Colors.grey,
+                              size: isSmallScreen ? 16 : 18,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],

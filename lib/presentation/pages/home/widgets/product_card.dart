@@ -1,6 +1,8 @@
 // lib/presentation/pages/home/widgets/product_card.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/models/product_model.dart';
+import '../../../../providers/wishlist_provider.dart';
 
 class ProductCard extends StatelessWidget {
   final ProductModel product;
@@ -106,86 +108,145 @@ class ProductCard extends StatelessWidget {
                     ),
                   ),
 
-                // Wishlist button
-                if (onWishlistTap != null)
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: InkWell(
-                      onTap: () => onWishlistTap!(product),
-                      child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
-                          shape: BoxShape.circle,
+                // Wishlist button with API integration
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Consumer<WishlistProvider>(
+                    builder: (context, wishlistProvider, child) {
+                      final productId = product.id.toString();
+                      final isWishlisted =
+                          wishlistProvider.isInWishlist(productId);
+                      final isLoading = wishlistProvider.isLoading;
+
+                      return InkWell(
+                        onTap: isLoading
+                            ? null
+                            : () async {
+                                if (onWishlistTap != null) {
+                                  onWishlistTap!(product);
+                                }
+                              },
+                        child: Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: isLoading
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      isWishlisted
+                                          ? const Color(0xFFFF4947)
+                                          : Colors.grey,
+                                    ),
+                                  ),
+                                )
+                              : Icon(
+                                  isWishlisted
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: isWishlisted
+                                      ? const Color(0xFFFF4947)
+                                      : Colors.grey,
+                                  size: 20,
+                                ),
                         ),
-                        child: Icon(
-                          product.isWishlisted
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          color: product.isWishlisted
-                              ? const Color(0xFFFF4947)
-                              : Colors.grey,
-                          size: 18,
-                        ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
+                ),
               ],
             ),
 
-            // Product info
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  // Seller name if available
-                  if (product.sellerInfo != null)
+            // Product details
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Product name
                     Text(
-                      'by ${product.sellerInfo!.userName}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
+                      product.name,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
                       ),
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        product.formattedSalePrice,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFFF7A2E),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      if (product.discountPercentage.isNotEmpty)
+
+                    const SizedBox(height: 4),
+
+                    // Price section
+                    Row(
+                      children: [
                         Text(
-                          product.formattedRegularPrice,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.grey[600],
-                            decoration: TextDecoration.lineThrough,
+                          product.formattedSalePrice,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFFF7A2E),
                           ),
                         ),
-                    ],
-                  ),
-                ],
+                        if (product.discountPercentage.isNotEmpty) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            product.formattedRegularPrice,
+                            style: TextStyle(
+                              fontSize: 11,
+                              decoration: TextDecoration.lineThrough,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    // Stock status
+                    Row(
+                      children: [
+                        Icon(
+                          product.stockQuantity > 0
+                              ? Icons.check_circle
+                              : Icons.error,
+                          size: 12,
+                          color: product.stockQuantity > 0
+                              ? Colors.green
+                              : Colors.red,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            product.stockQuantity > 0
+                                ? 'In Stock'
+                                : 'Out of Stock',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: product.stockQuantity > 0
+                                  ? Colors.green
+                                  : Colors.red,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

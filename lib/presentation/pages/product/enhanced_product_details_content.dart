@@ -1,4 +1,5 @@
 // lib/presentation/pages/product/enhanced_product_details_content.dart
+import 'package:anu_app/providers/product_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -570,7 +571,11 @@ class _EnhancedProductDetailsContentState
                                   ? const Color(0xFFFF4947)
                                   : Colors.grey,
                             ),
-                            onPressed: widget.onWishlistToggle,
+                            onPressed: () async {
+                              await Provider.of<ProductProvider>(context,
+                                      listen: false)
+                                  .toggleWishlist(widget.product, context);
+                            },
                           ),
                         ],
                       ),

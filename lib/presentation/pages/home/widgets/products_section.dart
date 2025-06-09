@@ -1,6 +1,8 @@
 // lib/presentation/pages/home/widgets/products_section.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/models/product_model.dart';
+import '../../../../providers/wishlist_provider.dart';
 import 'section_title.dart';
 import 'product_card.dart';
 import 'product_card_skeleton.dart';
@@ -134,15 +136,28 @@ class ProductsSection extends StatelessWidget {
   }
 
   Widget _buildProductsList() {
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      itemCount: products.length,
-      itemBuilder: (context, index) {
-        return ProductCard(
-          product: products[index],
-          onTap: () => onProductTap(products[index]),
-          onWishlistTap: onWishlistTap,
+    return Consumer<WishlistProvider>(
+      builder: (context, wishlistProvider, child) {
+        return ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          itemCount: products.length,
+          itemBuilder: (context, index) {
+            final product = products[index];
+            final productId = product.id.toString();
+            final isWishlisted = wishlistProvider.isInWishlist(productId);
+
+            // Create updated product with current wishlist status
+            final updatedProduct = product.copyWith(isWishlisted: isWishlisted);
+
+            return ProductCard(
+              product: updatedProduct,
+              onTap: () => onProductTap(updatedProduct),
+              onWishlistTap: onWishlistTap != null
+                  ? (ProductModel p) => onWishlistTap!(p)
+                  : null,
+            );
+          },
         );
       },
     );

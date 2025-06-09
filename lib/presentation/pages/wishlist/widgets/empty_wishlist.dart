@@ -1,6 +1,7 @@
 // lib/presentation/pages/wishlist/widgets/empty_wishlist.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../config/theme.dart';
 
 class EmptyWishlist extends StatelessWidget {
   const EmptyWishlist({Key? key}) : super(key: key);
@@ -9,57 +10,149 @@ class EmptyWishlist extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
+        padding: AppTheme.getResponsivePadding(context),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Wishlist Icon
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
                 Icons.favorite_border,
-                size: 80,
-                color: Colors.grey[400],
+                size: 60,
+                color: AppTheme.primaryColor.withOpacity(0.6),
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'Your Wishlist is Empty',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 32),
+
+            // Title
+            Text(
+              'Your Wishlist is Empty',
+              style: TextStyle(
+                fontSize: AppTheme.getHeadlineFontSize(context),
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
               ),
-              const SizedBox(height: 12),
-              Text(
-                'Tap the heart icon on any product to add it to your wishlist',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 16),
+
+            // Description
+            Text(
+              'Looks like you haven\'t added any items to your wishlist yet.\nDiscover amazing products and save your favorites!',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppTheme.textSecondary,
+                height: 1.5,
               ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: () {
-                  context.go('/home');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF7A2E),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 12,
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 40),
+
+            // Action Buttons
+            Column(
+              children: [
+                // Primary Action - Browse Products
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => context.go('/home'),
+                    icon: const Icon(Icons.explore),
+                    label: const Text('Start Shopping'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 24,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Secondary Action - Browse Categories
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.go('/categories'),
+                    icon: const Icon(Icons.category_outlined),
+                    label: const Text('Browse Categories'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primaryColor,
+                      side: const BorderSide(color: AppTheme.primaryColor),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 24,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
                 ),
-                child: const Text(
-                  'Explore Products',
-                  style: TextStyle(fontSize: 16),
+              ],
+            ),
+
+            const SizedBox(height: 40),
+
+            // Tips Section
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.backgroundColor.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppTheme.dividerColor,
+                  width: 1,
                 ),
               ),
-            ],
-          ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.lightbulb_outline,
+                        color: AppTheme.primaryColor,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Pro Tip',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Tap the heart icon on any product to add it to your wishlist. You can save items for later and get notified about price drops!',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

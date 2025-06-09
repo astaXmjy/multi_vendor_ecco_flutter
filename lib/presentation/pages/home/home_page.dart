@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/models/product_model.dart';
 import '../../../providers/product_provider.dart';
+import '../../../providers/wishlist_provider.dart';
 import 'widgets/home_app_bar.dart';
 import 'widgets/home_drawer.dart';
 import 'widgets/banner_slider.dart';
@@ -22,7 +23,15 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _loadProducts();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    // Initialize both products and wishlist
+    await Future.wait([
+      _loadProducts(),
+      _initializeWishlist(),
+    ]);
   }
 
   Future<void> _loadProducts() async {
@@ -37,6 +46,18 @@ class _HomePageState extends State<HomePage> {
     ]);
   }
 
+  Future<void> _initializeWishlist() async {
+    try {
+      final wishlistProvider =
+          Provider.of<WishlistProvider>(context, listen: false);
+      await wishlistProvider.initialize();
+    } catch (e) {
+      // Silently handle wishlist initialization errors
+      // User can still use the app without wishlist functionality
+      print('Failed to initialize wishlist: $e');
+    }
+  }
+
   void _navigateToProductDetails(ProductModel product) {
     // Navigate to product details page
     context.push('/product/${product.slug}');
@@ -47,13 +68,26 @@ class _HomePageState extends State<HomePage> {
     context.push('/products?type=$type&title=$title');
   }
 
+  // Updated wishlist handler with API integration
+  void _handleWishlistTap(ProductModel product) async {
+    final productProvider =
+        Provider.of<ProductProvider>(context, listen: false);
+
+    try {
+      await productProvider.toggleWishlist(product, context);
+    } catch (e) {
+      // Error handling is done in the ProductProvider
+      print('Wishlist toggle failed: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const HomeAppBar(),
       drawer: const HomeDrawer(),
       body: RefreshIndicator(
-        onRefresh: _loadProducts,
+        onRefresh: _initializeData,
         child: Consumer<ProductProvider>(
           builder: (context, productProvider, child) {
             return SingleChildScrollView(
@@ -71,14 +105,14 @@ class _HomePageState extends State<HomePage> {
 
                   const SizedBox(height: 16),
 
-                  // Featured products
+                  // Featured products with API wishlist integration
                   ProductsSection(
                     title: 'Featured Products',
                     products: productProvider.featuredProducts,
                     isLoading: productProvider.isLoadingFeatured,
                     errorMessage: productProvider.featuredError,
                     onProductTap: _navigateToProductDetails,
-                    onWishlistTap: productProvider.toggleWishlist,
+                    onWishlistTap: _handleWishlistTap,
                     onRetry: productProvider.loadFeaturedProducts,
                     onViewAll: () =>
                         _navigateToAllProducts('Featured Products', 'featured'),
@@ -86,14 +120,14 @@ class _HomePageState extends State<HomePage> {
 
                   const SizedBox(height: 16),
 
-                  // New arrivals
+                  // New arrivals with API wishlist integration
                   ProductsSection(
                     title: 'New Arrivals',
                     products: productProvider.newArrivals,
                     isLoading: productProvider.isLoadingNewArrivals,
                     errorMessage: productProvider.newArrivalsError,
                     onProductTap: _navigateToProductDetails,
-                    onWishlistTap: productProvider.toggleWishlist,
+                    onWishlistTap: _handleWishlistTap,
                     onRetry: productProvider.loadNewArrivals,
                     onViewAll: () =>
                         _navigateToAllProducts('New Arrivals', 'new_arrivals'),
@@ -101,14 +135,14 @@ class _HomePageState extends State<HomePage> {
 
                   const SizedBox(height: 16),
 
-                  // Best sellers
+                  // Best sellers with API wishlist integration
                   ProductsSection(
                     title: 'Best Sellers',
                     products: productProvider.bestSellers,
                     isLoading: productProvider.isLoadingBestSellers,
                     errorMessage: productProvider.bestSellersError,
                     onProductTap: _navigateToProductDetails,
-                    onWishlistTap: productProvider.toggleWishlist,
+                    onWishlistTap: _handleWishlistTap,
                     onRetry: productProvider.loadBestSellers,
                     onViewAll: () =>
                         _navigateToAllProducts('Best Sellers', 'best_sellers'),

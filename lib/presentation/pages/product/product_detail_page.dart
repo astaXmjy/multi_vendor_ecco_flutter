@@ -182,7 +182,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             product: product,
             variantData: productProvider.selectedProductVariants,
             breadcrumbs: _breadcrumbs,
-            onWishlistToggle: () => productProvider.toggleWishlist(product),
+            onWishlistToggle: () async {
+              await Provider.of<ProductProvider>(context, listen: false)
+                  .toggleWishlist(product, context);
+            },
           );
 
           // Overlay loading indicator for variants if needed

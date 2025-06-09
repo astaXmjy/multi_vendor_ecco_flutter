@@ -407,7 +407,8 @@ class _CategoryTreeProductsPageState extends State<CategoryTreeProductsPage> {
         return ProductGridItem(
           product: products[index],
           onTap: () => _navigateToProductDetails(products[index]),
-          onWishlistTap: () => productProvider.toggleWishlist(products[index]),
+          onWishlistTap: () =>
+              productProvider.toggleWishlist(products[index], context),
         );
       },
     );
@@ -423,7 +424,8 @@ class _CategoryTreeProductsPageState extends State<CategoryTreeProductsPage> {
         return ProductListItem(
           product: products[index],
           onTap: () => _navigateToProductDetails(products[index]),
-          onWishlistTap: () => productProvider.toggleWishlist(products[index]),
+          onWishlistTap: () =>
+              productProvider.toggleWishlist(products[index], context),
         );
       },
     );

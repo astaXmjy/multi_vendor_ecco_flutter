@@ -1,5 +1,9 @@
 // lib/providers/product_provider.dart
+import 'package:anu_app/providers/wishlist_provider.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'dart:developer' as developer;
 import '../api/services/product_service.dart';
 import '../api/services/category_service.dart';
@@ -567,15 +571,58 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
-  // Enhanced toggle wishlist with variant support
-  void toggleWishlist(ProductModel product) {
-    final updatedProduct =
-        product.copyWith(isWishlisted: !product.isWishlisted);
-    _updateProductInLists(updatedProduct);
-    notifyListeners();
+  // Updated method for lib/providers/product_provider.dart
 
-    developer.log(
-        'Toggled wishlist for product: ${product.name}, new status: ${!product.isWishlisted}');
+// Enhanced toggle wishlist with API integration
+  Future<void> toggleWishlist(
+      ProductModel product, BuildContext context) async {
+    final wishlistProvider =
+        Provider.of<WishlistProvider>(context, listen: false);
+
+    try {
+      // Convert product ID to string to match API expectations
+      final productId = product.id.toString();
+
+      // Call the API through WishlistProvider
+      final success = await wishlistProvider.toggleWishlist(
+        productId,
+        variantId: null, // Add variant support if needed
+      );
+
+      if (success) {
+        // Update the local product state
+        final updatedProduct =
+            product.copyWith(isWishlisted: !product.isWishlisted);
+        _updateProductInLists(updatedProduct);
+        notifyListeners();
+
+        // Show user feedback
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(updatedProduct.isWishlisted
+                  ? '${product.name} added to wishlist'
+                  : '${product.name} removed from wishlist'),
+              backgroundColor:
+                  updatedProduct.isWishlisted ? Colors.green : Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      developer.log('Error toggling wishlist: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update wishlist. Please try again.'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   // Helper to update a product in all lists

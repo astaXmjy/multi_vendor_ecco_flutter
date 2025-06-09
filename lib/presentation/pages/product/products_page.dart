@@ -332,7 +332,8 @@ class _ProductsPageState extends State<ProductsPage> {
         return ProductGridItem(
           product: products[index],
           onTap: () => _navigateToProductDetails(products[index]),
-          onWishlistTap: () => productProvider.toggleWishlist(products[index]),
+          onWishlistTap: () =>
+              productProvider.toggleWishlist(products[index], context),
         );
       },
     );
@@ -348,7 +349,9 @@ class _ProductsPageState extends State<ProductsPage> {
         return ProductListItem(
           product: products[index],
           onTap: () => _navigateToProductDetails(products[index]),
-          onWishlistTap: () => productProvider.toggleWishlist(products[index]),
+          onWishlistTap: () async {
+            await productProvider.toggleWishlist(products[index], context);
+          },
         );
       },
     );

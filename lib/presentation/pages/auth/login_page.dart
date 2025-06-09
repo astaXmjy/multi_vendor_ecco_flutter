@@ -1,4 +1,5 @@
 // lib/presentation/pages/auth/login_page.dart
+import 'package:anu_app/providers/wishlist_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -77,6 +78,14 @@ class _LoginPageState extends State<LoginPage> {
             if (userData != null) {
               userProvider.setUserData(userData);
             }
+          }
+          try {
+            final wishlistProvider =
+                Provider.of<WishlistProvider>(context, listen: false);
+            await wishlistProvider.initialize();
+            developer.log('Wishlist initialized successfully after login');
+          } catch (e) {
+            developer.log('Failed to initialize wishlist after login: $e');
           }
 
           // Navigate to the home page

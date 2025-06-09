@@ -1,5 +1,8 @@
 // lib/presentation/pages/product/widgets/product_list_item.dart
+import 'package:anu_app/providers/product_provider.dart';
+import 'package:anu_app/providers/wishlist_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/models/product_model.dart';
 
 class ProductListItem extends StatelessWidget {
@@ -188,26 +191,36 @@ class ProductListItem extends StatelessWidget {
                     ),
 
                     const SizedBox(height: 8),
-
                     // Wishlist button
                     Align(
                       alignment: Alignment.centerRight,
-                      child: IconButton(
-                        onPressed: onWishlistTap,
-                        icon: Icon(
-                          product.isWishlisted
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          color: product.isWishlisted
-                              ? const Color(0xFFFF4947)
-                              : Colors.grey,
-                        ),
-                        constraints: const BoxConstraints(),
-                        padding: const EdgeInsets.all(4),
-                        splashRadius: 20,
-                        tooltip: product.isWishlisted
-                            ? 'Remove from Wishlist'
-                            : 'Add to Wishlist',
+                      child: Consumer<WishlistProvider>(
+                        builder: (context, wishlistProvider, child) {
+                          final isWishlisted = wishlistProvider
+                              .isInWishlist(product.id.toString());
+
+                          return IconButton(
+                            onPressed: () async {
+                              await Provider.of<ProductProvider>(context,
+                                      listen: false)
+                                  .toggleWishlist(product, context);
+                            },
+                            icon: Icon(
+                              isWishlisted
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: isWishlisted
+                                  ? const Color(0xFFFF4947)
+                                  : Colors.grey,
+                            ),
+                            constraints: const BoxConstraints(),
+                            padding: const EdgeInsets.all(4),
+                            splashRadius: 20,
+                            tooltip: isWishlisted
+                                ? 'Remove from Wishlist'
+                                : 'Add to Wishlist',
+                          );
+                        },
                       ),
                     ),
                   ],
