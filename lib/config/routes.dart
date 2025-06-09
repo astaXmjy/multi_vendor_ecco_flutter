@@ -21,20 +21,24 @@ class AppRoutes {
   static GoRouter createRouter({required bool isLoggedIn}) {
     return GoRouter(
       initialLocation: isLoggedIn ? '/home' : '/login',
+      debugLogDiagnostics: true,
       routes: [
         // Authentication Routes
         GoRoute(
           path: '/login',
+          name: 'login',
           builder: (context, state) => const LoginPage(),
         ),
         GoRoute(
           path: '/create-account',
+          name: 'create-account',
           builder: (context, state) => const CreateAccountPage(),
         ),
 
         // Address Form Route
         GoRoute(
           path: '/address-form',
+          name: 'address-form',
           builder: (context, state) {
             final mode = state.uri.queryParameters['mode'] ?? 'newAddress';
             final fullName = state.uri.queryParameters['fullName'];
@@ -60,20 +64,24 @@ class AppRoutes {
         // Main App Routes
         GoRoute(
           path: '/home',
+          name: 'home',
           builder: (context, state) => const HomePage(),
         ),
         GoRoute(
           path: '/wishlist',
+          name: 'wishlist',
           builder: (context, state) => const WishlistPage(),
         ),
 
         // Profile Routes
         GoRoute(
           path: '/profile',
+          name: 'profile',
           builder: (context, state) => const ProfilePage(),
         ),
         GoRoute(
           path: '/profile/edit',
+          name: 'profile-edit',
           builder: (context, state) {
             final profileData = state.extra as ProfileModel?;
             if (profileData == null) {
@@ -88,16 +96,19 @@ class AppRoutes {
         ),
         GoRoute(
           path: '/profile/addresses',
+          name: 'profile-addresses',
           builder: (context, state) => const MyAddressesPage(),
         ),
 
         // Category Routes
         GoRoute(
           path: '/categories',
+          name: 'categories',
           builder: (context, state) => const CombinedCategoriesPage(),
         ),
         GoRoute(
           path: '/category-products/:slug',
+          name: 'category-products',
           builder: (context, state) {
             final slug = state.pathParameters['slug'] ?? '';
             final title =
@@ -112,6 +123,7 @@ class AppRoutes {
         // Product Routes
         GoRoute(
           path: '/product/:slug',
+          name: 'product-detail',
           builder: (context, state) {
             final slug = state.pathParameters['slug'] ?? '';
             return ProductDetailPage(slug: slug);
@@ -119,6 +131,7 @@ class AppRoutes {
         ),
         GoRoute(
           path: '/products',
+          name: 'products',
           builder: (context, state) {
             final type = state.uri.queryParameters['type'] ?? '';
             final title = state.uri.queryParameters['title'] ?? 'Products';
@@ -134,64 +147,180 @@ class AppRoutes {
         // Cart Routes
         GoRoute(
           path: '/cart',
+          name: 'cart',
           builder: (context, state) => const CartPage(),
         ),
         GoRoute(
           path: '/checkout',
+          name: 'checkout',
           builder: (context, state) => const CheckoutPage(),
+        ),
+
+        // Search Route
+        GoRoute(
+          path: '/search',
+          name: 'search',
+          builder: (context, state) {
+            final query = state.uri.queryParameters['q'] ?? '';
+            return ProductsPage(
+              type: 'search',
+              title: 'Search Results',
+              // You might want to add search functionality to ProductsPage
+            );
+          },
         ),
       ],
 
-      // Error handling
+      // Error handling with better UX
       errorBuilder: (context, state) => Scaffold(
         appBar: AppBar(
           title: const Text('Page Not Found'),
           backgroundColor: const Color(0xFFFF7A2E),
+          foregroundColor: Colors.white,
         ),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Colors.grey,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Page Not Found',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.error_outline,
+                    size: 60,
+                    color: Colors.grey.shade400,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'The page "${state.matchedLocation}" could not be found.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey[600],
+                const SizedBox(height: 24),
+                const Text(
+                  'Page Not Found',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => context.go('/home'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF7A2E),
-                  foregroundColor: Colors.white,
+                const SizedBox(height: 8),
+                Text(
+                  'The page "${state.matchedLocation}" could not be found.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                  ),
                 ),
-                child: const Text('Go Home'),
-              ),
-            ],
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => context.go('/home'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF7A2E),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('Go Home'),
+                    ),
+                    const SizedBox(width: 16),
+                    OutlinedButton(
+                      onPressed: () => context.go('/cart'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFFF7A2E),
+                        side: const BorderSide(color: Color(0xFFFF7A2E)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('View Cart'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
 
-      // Redirect handling
+      // Redirect handling for authentication and route protection
       redirect: (context, state) {
-        // Add any authentication or conditional redirects here
-        return null;
+        final isLoginRoute = state.matchedLocation == '/login';
+        final isCreateAccountRoute = state.matchedLocation == '/create-account';
+
+        // If user is not logged in and trying to access protected routes
+        if (!isLoggedIn && !isLoginRoute && !isCreateAccountRoute) {
+          return '/login';
+        }
+
+        // If user is logged in and trying to access auth routes, redirect to home
+        if (isLoggedIn && (isLoginRoute || isCreateAccountRoute)) {
+          return '/home';
+        }
+
+        return null; // No redirect needed
       },
     );
+  }
+
+  // Navigation helper methods for better code organization
+  static void goToCart(BuildContext context) {
+    context.go('/cart');
+  }
+
+  static void goToCheckout(BuildContext context) {
+    context.go('/checkout');
+  }
+
+  static void goToProduct(BuildContext context, String slug) {
+    context.go('/product/$slug');
+  }
+
+  static void goToCategory(BuildContext context, String slug, String title) {
+    context.go('/category-products/$slug?title=${Uri.encodeComponent(title)}');
+  }
+
+  static void goToProducts(
+    BuildContext context, {
+    String type = '',
+    String title = 'Products',
+    String? category,
+  }) {
+    var uri =
+        '/products?type=${Uri.encodeComponent(type)}&title=${Uri.encodeComponent(title)}';
+    if (category != null) {
+      uri += '&category=${Uri.encodeComponent(category)}';
+    }
+    context.go(uri);
+  }
+
+  static void goToProfile(BuildContext context) {
+    context.go('/profile');
+  }
+
+  static void goToWishlist(BuildContext context) {
+    context.go('/wishlist');
+  }
+
+  static void goToHome(BuildContext context) {
+    context.go('/home');
+  }
+
+  static void goToSearch(BuildContext context, String query) {
+    context.go('/search?q=${Uri.encodeComponent(query)}');
+  }
+
+  // Back navigation with fallback
+  static void goBack(BuildContext context, {String fallbackRoute = '/home'}) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(fallbackRoute);
+    }
   }
 }

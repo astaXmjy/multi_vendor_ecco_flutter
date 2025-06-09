@@ -1,6 +1,6 @@
-// lib/presentation/pages/cart/widgets/empty_cart.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../config/theme.dart';
 
 class EmptyCart extends StatelessWidget {
   const EmptyCart({Key? key}) : super(key: key);
@@ -8,56 +8,63 @@ class EmptyCart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
                 Icons.shopping_cart_outlined,
-                size: 80,
-                color: Colors.grey[400],
+                size: 60,
+                color: Colors.grey.shade400,
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'Your Cart is Empty',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Your cart is empty',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Looks like you haven\'t added anything to your cart yet',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey.shade600,
+                  ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: () => context.go('/home'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
                 ),
-                textAlign: TextAlign.center,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
               ),
-              const SizedBox(height: 12),
-              Text(
-                'Add items to your cart to begin shopping',
+              child: const Text(
+                'Start Shopping',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed: () {
-                  context.go('/home');
-                },
-                icon: const Icon(Icons.shopping_bag),
-                label: const Text('Start Shopping'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF7A2E),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
