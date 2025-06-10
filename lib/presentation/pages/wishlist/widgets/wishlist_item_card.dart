@@ -1,7 +1,8 @@
-// lib/presentation/pages/wishlist/widgets/wishlist_item_card.dart
+// lib/presentation/pages/wishlist/widgets/wishlist_item_card.dart - Enhanced with image service
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/models/wishlist_item_model.dart';
+import '../../../../providers/wishlist_provider.dart';
 import '../../../../config/theme.dart';
 
 class WishlistItemCard extends StatelessWidget {
@@ -21,29 +22,31 @@ class WishlistItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = AppTheme.isMobile(context);
+    final isTablet = AppTheme.isTablet(context);
 
     return Dismissible(
       key: Key('wishlist_${item.id}'),
       direction: DismissDirection.endToStart,
       onDismissed: (_) => onRemove(),
-      background: _buildDismissBackground(),
+      background: _buildDismissBackground(context),
       child: GestureDetector(
         onTap: onTap,
         child: Container(
+          margin: EdgeInsets.symmetric(
+            horizontal:
+                AppTheme.getResponsiveHorizontalPadding(context).horizontal / 2,
+            vertical: 6,
+          ),
           decoration: BoxDecoration(
             color: AppTheme.surfaceColor,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            borderRadius:
+                BorderRadius.circular(AppTheme.getCardRadius(context)),
+            boxShadow: AppTheme.getCardShadow(
+                elevation: AppTheme.getCardElevation(context)),
           ),
-          child: isMobile
-              ? _buildMobileLayout(context)
-              : _buildTabletLayout(context),
+          child: isTablet
+              ? _buildTabletLayout(context)
+              : _buildMobileLayout(context),
         ),
       ),
     );
@@ -63,15 +66,15 @@ class WishlistItemCard extends StatelessWidget {
         Expanded(
           flex: 2,
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: AppTheme.getResponsiveCardPadding(context),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildProductName(),
+                _buildProductName(context),
                 const SizedBox(height: 4),
-                _buildPriceSection(),
+                _buildPriceSection(context),
                 const SizedBox(height: 8),
-                _buildStockStatus(),
+                _buildStockStatus(context),
                 const Spacer(),
                 _buildActionButtons(context),
               ],
@@ -84,7 +87,7 @@ class WishlistItemCard extends StatelessWidget {
 
   Widget _buildTabletLayout(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: AppTheme.getResponsiveCardPadding(context),
       child: Row(
         children: [
           // Product Image
@@ -105,11 +108,11 @@ class WishlistItemCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildProductName(),
+                    _buildProductName(context),
                     const SizedBox(height: 8),
-                    _buildPriceSection(),
+                    _buildPriceSection(context),
                     const SizedBox(height: 8),
-                    _buildStockStatus(),
+                    _buildStockStatus(context),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -123,22 +126,56 @@ class WishlistItemCard extends StatelessWidget {
   }
 
   Widget _buildProductImage(BuildContext context) {
+    return Consumer<WishlistProvider>(
+      builder: (context, wishlistProvider, child) {
+        // Get the variant-specific image URL from the provider
+        final variantImageUrl = wishlistProvider.getItemImageUrl(item);
+        // Use variant image if available, otherwise fallback to product info image
+        final imageUrl = variantImageUrl ?? item.productInfo.image ?? '';
+
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius:
+                BorderRadius.circular(AppTheme.getCardRadius(context)),
+            color: Colors.grey.shade100,
+          ),
+          child: ClipRRect(
+            borderRadius:
+                BorderRadius.circular(AppTheme.getCardRadius(context)),
+            child: imageUrl.isNotEmpty
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return _buildImageSkeleton();
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return _buildImagePlaceholder();
+                    },
+                  )
+                : _buildImagePlaceholder(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildImageSkeleton() {
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: Colors.grey.shade100,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: item.productInfo.image != null
-            ? CachedNetworkImage(
-                imageUrl: item.productInfo.image!,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => _buildImagePlaceholder(),
-                errorWidget: (context, url, error) => _buildImagePlaceholder(),
-              )
-            : _buildImagePlaceholder(),
+      height: double.infinity,
+      color: Colors.grey.shade200,
+      child: Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.grey.shade400),
+          ),
+        ),
       ),
     );
   }
@@ -156,11 +193,11 @@ class WishlistItemCard extends StatelessWidget {
     );
   }
 
-  Widget _buildProductName() {
+  Widget _buildProductName(BuildContext context) {
     return Text(
       item.productInfo.name,
-      style: const TextStyle(
-        fontSize: 14,
+      style: TextStyle(
+        fontSize: AppTheme.getTitleFontSize(context),
         fontWeight: FontWeight.w600,
         color: AppTheme.textPrimary,
       ),
@@ -169,13 +206,13 @@ class WishlistItemCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPriceSection() {
+  Widget _buildPriceSection(BuildContext context) {
     return Row(
       children: [
         Text(
           item.productInfo.formattedPrice,
-          style: const TextStyle(
-            fontSize: 16,
+          style: TextStyle(
+            fontSize: AppTheme.getBodyFontSize(context) + 2,
             fontWeight: FontWeight.bold,
             color: AppTheme.primaryColor,
           ),
@@ -184,10 +221,26 @@ class WishlistItemCard extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             item.productInfo.formattedRegularPrice,
-            style: const TextStyle(
-              fontSize: 12,
+            style: TextStyle(
+              fontSize: AppTheme.getCaptionFontSize(context),
               color: AppTheme.textSecondary,
               decoration: TextDecoration.lineThrough,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppTheme.successColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              '${item.productInfo.discountPercentage.toInt()}% OFF',
+              style: TextStyle(
+                fontSize: AppTheme.getCaptionFontSize(context) - 1,
+                color: AppTheme.successColor,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -195,21 +248,24 @@ class WishlistItemCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStockStatus() {
+  Widget _buildStockStatus(BuildContext context) {
     final inStock = item.productInfo.isAvailable;
 
     return Row(
       children: [
-        Icon(
-          inStock ? Icons.check_circle : Icons.error,
-          size: 14,
-          color: inStock ? AppTheme.successColor : AppTheme.errorColor,
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: inStock ? AppTheme.successColor : AppTheme.errorColor,
+            shape: BoxShape.circle,
+          ),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 6),
         Text(
           inStock ? 'In Stock' : 'Out of Stock',
           style: TextStyle(
-            fontSize: 12,
+            fontSize: AppTheme.getCaptionFontSize(context),
             color: inStock ? AppTheme.successColor : AppTheme.errorColor,
             fontWeight: FontWeight.w500,
           ),
@@ -228,12 +284,12 @@ class WishlistItemCard extends StatelessWidget {
             onPressed: item.productInfo.isAvailable ? onAddToCart : null,
             icon: Icon(
               Icons.shopping_cart_outlined,
-              size: isMobile ? 16 : 18,
+              size: AppTheme.getSmallIconSize(context),
             ),
             label: Text(
               'Add to Cart',
               style: TextStyle(
-                fontSize: isMobile ? 12 : 14,
+                fontSize: isMobile ? 12 : AppTheme.getBodyFontSize(context),
               ),
             ),
             style: OutlinedButton.styleFrom(
@@ -244,64 +300,56 @@ class WishlistItemCard extends StatelessWidget {
                     : Colors.grey.shade300,
               ),
               padding: EdgeInsets.symmetric(
-                vertical: isMobile ? 6 : 8,
                 horizontal: isMobile ? 8 : 12,
+                vertical: isMobile ? 6 : 8,
               ),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius:
+                    BorderRadius.circular(AppTheme.getButtonRadius(context)),
               ),
             ),
           ),
         ),
-
         const SizedBox(width: 8),
-
-        // Remove button
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onRemove,
-            borderRadius: BorderRadius.circular(6),
-            child: Container(
-              padding: EdgeInsets.all(isMobile ? 6 : 8),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Icon(
-                Icons.delete_outline,
-                size: isMobile ? 16 : 18,
-                color: AppTheme.errorColor,
-              ),
-            ),
+        IconButton(
+          onPressed: onRemove,
+          icon: Icon(
+            Icons.delete_outline,
+            color: AppTheme.errorColor,
+            size: AppTheme.getSmallIconSize(context),
           ),
+          style: IconButton.styleFrom(
+            backgroundColor: AppTheme.errorColor.withOpacity(0.1),
+            padding: EdgeInsets.all(isMobile ? 8 : 12),
+          ),
+          tooltip: 'Remove from wishlist',
         ),
       ],
     );
   }
 
-  Widget _buildDismissBackground() {
+  Widget _buildDismissBackground(BuildContext context) {
     return Container(
       alignment: Alignment.centerRight,
       padding: const EdgeInsets.only(right: 20),
       decoration: BoxDecoration(
         color: AppTheme.errorColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.getCardRadius(context)),
       ),
-      child: const Column(
+      child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.delete_outline,
             color: Colors.white,
-            size: 24,
+            size: AppTheme.getIconSize(context),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
             'Remove',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 12,
+              fontSize: AppTheme.getCaptionFontSize(context),
               fontWeight: FontWeight.w600,
             ),
           ),

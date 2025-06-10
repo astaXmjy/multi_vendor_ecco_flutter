@@ -1,3 +1,4 @@
+// lib/presentation/pages/cart/widgets/cart_summary_card.dart
 import 'package:flutter/material.dart';
 import '../../../../providers/cart_provider.dart';
 import '../../../../config/theme.dart';
@@ -16,89 +17,158 @@ class CartSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shippingFee = 50.0;
-    final subtotal = cartProvider.totalAmount;
-    final total = subtotal + shippingFee;
-
     return Card(
-      elevation: isCompact ? 0 : 4,
+      elevation: AppTheme.getCardElevation(context),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppTheme.getCardRadius(context)),
       ),
       child: Padding(
-        padding: EdgeInsets.all(isCompact ? 12 : 20),
+        padding: AppTheme.getResponsiveCardPadding(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (!isCompact) ...[
               Text(
                 'Order Summary',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: TextStyle(
+                  fontSize: AppTheme.getTitleFontSize(context),
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
               ),
               const SizedBox(height: 16),
             ],
-            _buildSummaryRow('Subtotal', subtotal, isSubtotal: true),
-            const SizedBox(height: 8),
-            _buildSummaryRow('Shipping', shippingFee),
-            const SizedBox(height: 8),
-            if (subtotal > 500) ...[
-              _buildSummaryRow('Discount', -shippingFee, isDiscount: true),
-              const SizedBox(height: 8),
-            ],
-            const Divider(thickness: 1),
-            const SizedBox(height: 8),
+
+            // Subtotal
             _buildSummaryRow(
+              context,
+              'Subtotal (${cartProvider.itemCount} items)',
+              '₹${cartProvider.subtotal.toStringAsFixed(0)}',
+              isSubtitle: true,
+            ),
+
+            if (!isCompact) const SizedBox(height: 8),
+
+            // Shipping
+            _buildSummaryRow(
+              context,
+              'Shipping',
+              cartProvider.shippingCost > 0
+                  ? '₹${cartProvider.shippingCost.toStringAsFixed(0)}'
+                  : 'FREE',
+              isSubtitle: true,
+              valueColor:
+                  cartProvider.shippingCost > 0 ? null : AppTheme.successColor,
+            ),
+
+            if (!isCompact && cartProvider.taxAmount > 0) ...[
+              const SizedBox(height: 8),
+              _buildSummaryRow(
+                context,
+                'Tax',
+                '₹${cartProvider.taxAmount.toStringAsFixed(0)}',
+                isSubtitle: true,
+              ),
+            ],
+
+            if (!isCompact && cartProvider.totalSavings > 0) ...[
+              const SizedBox(height: 8),
+              _buildSummaryRow(
+                context,
+                'You Save',
+                '-₹${cartProvider.totalSavings.toStringAsFixed(0)}',
+                isSubtitle: true,
+                valueColor: AppTheme.successColor,
+              ),
+            ],
+
+            const SizedBox(height: 12),
+
+            const Divider(thickness: 1),
+
+            const SizedBox(height: 12),
+
+            // Total
+            _buildSummaryRow(
+              context,
               'Total',
-              subtotal > 500 ? subtotal : total,
-              isTotal: true,
+              '₹${cartProvider.finalTotal.toStringAsFixed(0)}',
+              isBold: true,
             ),
-            SizedBox(height: isCompact ? 12 : 20),
-            ElevatedButton(
-              onPressed: onCheckout,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(
-                  vertical: isCompact ? 12 : 16,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 2,
-              ),
-              child: Text(
-                'Proceed to Checkout',
+
+            if (!isCompact) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Estimated delivery: ${cartProvider.estimatedDeliveryDate}',
                 style: TextStyle(
-                  fontSize: isCompact ? 14 : 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: AppTheme.getCaptionFontSize(context),
+                  color: AppTheme.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+
+            const SizedBox(height: 16),
+
+            // Checkout button
+            SizedBox(
+              height: AppTheme.getButtonHeight(context),
+              child: ElevatedButton(
+                onPressed: onCheckout,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                        AppTheme.getButtonRadius(context)),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.shopping_bag_outlined,
+                      size: AppTheme.getSmallIconSize(context),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Proceed to Checkout',
+                      style: TextStyle(
+                        fontSize: AppTheme.getBodyFontSize(context),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            if (subtotal <= 500 && !isCompact) ...[
+
+            if (!isCompact && cartProvider.shippingCost > 0) ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
+                  color: AppTheme.successColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.shade200),
+                  border: Border.all(
+                    color: AppTheme.successColor.withOpacity(0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.local_shipping_outlined,
-                      color: Colors.green.shade700,
-                      size: 20,
+                      size: AppTheme.getSmallIconSize(context),
+                      color: AppTheme.successColor,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Add ₹${(500 - subtotal).toStringAsFixed(0)} more for free shipping!',
+                        'Add ₹${(500 - cartProvider.subtotal).toStringAsFixed(0)} more for FREE shipping',
                         style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.green.shade700,
+                          fontSize: AppTheme.getCaptionFontSize(context),
+                          color: AppTheme.successColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -114,11 +184,12 @@ class CartSummaryCard extends StatelessWidget {
   }
 
   Widget _buildSummaryRow(
+    BuildContext context,
     String label,
-    double amount, {
-    bool isSubtotal = false,
-    bool isTotal = false,
-    bool isDiscount = false,
+    String value, {
+    bool isBold = false,
+    bool isSubtitle = false,
+    Color? valueColor,
   }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -126,21 +197,22 @@ class CartSummaryCard extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontSize: isTotal ? 16 : 14,
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-            color: isDiscount ? Colors.green.shade700 : null,
+            fontSize: isSubtitle
+                ? AppTheme.getBodyFontSize(context)
+                : AppTheme.getTitleFontSize(context),
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+            color: isSubtitle ? AppTheme.textSecondary : AppTheme.textPrimary,
           ),
         ),
         Text(
-          '${isDiscount ? '-' : ''}₹${amount.abs().toStringAsFixed(0)}',
+          value,
           style: TextStyle(
-            fontSize: isTotal ? 16 : 14,
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-            color: isTotal
-                ? AppTheme.primaryColor
-                : isDiscount
-                    ? Colors.green.shade700
-                    : null,
+            fontSize: isSubtitle
+                ? AppTheme.getBodyFontSize(context)
+                : AppTheme.getTitleFontSize(context),
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+            color: valueColor ??
+                (isBold ? AppTheme.primaryColor : AppTheme.textPrimary),
           ),
         ),
       ],

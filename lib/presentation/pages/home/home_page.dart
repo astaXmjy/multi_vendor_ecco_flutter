@@ -1,4 +1,6 @@
 // lib/presentation/pages/home/home_page.dart
+import 'package:anu_app/providers/cart_provider.dart';
+import 'package:anu_app/providers/user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -24,6 +26,16 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _initializeData();
+
+    // Add this line to load cart
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        if (userProvider.isLoggedIn) {
+          Provider.of<CartProvider>(context, listen: false).fetchCartItems();
+        }
+      }
+    });
   }
 
   Future<void> _initializeData() async {

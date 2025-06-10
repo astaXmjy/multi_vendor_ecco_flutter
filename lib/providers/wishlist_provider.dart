@@ -1,17 +1,21 @@
-// lib/providers/wishlist_provider.dart
+// lib/providers/wishlist_provider.dart - Enhanced with cart_image_service
 import 'package:flutter/material.dart';
 import '../api/services/wishlist_service.dart';
 import '../api/services/cart_service.dart';
+import '../api/services/cart_image_service.dart'; // Added image service
 import '../core/models/wishlist_item_model.dart';
 
 class WishlistProvider extends ChangeNotifier {
   final WishlistService _wishlistService = WishlistService();
   final CartService _cartService = CartService();
+  final CartImageService _imageService =
+      CartImageService(); // Added image service
 
   List<WishlistItemModel> _wishlistItems = [];
   bool _isLoading = false;
   String? _errorMessage;
   int _wishlistCount = 0;
+  Map<String, String> _itemImages = {}; // Cache for item images
 
   // Getters
   List<WishlistItemModel> get wishlistItems => _wishlistItems;
@@ -19,6 +23,12 @@ class WishlistProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   int get wishlistCount => _wishlistCount;
   bool get isEmpty => _wishlistItems.isEmpty;
+
+  // Get cached image URL for a wishlist item
+  String? getItemImageUrl(WishlistItemModel item) {
+    final key = '${item.productId}_${item.variantId ?? 'default'}';
+    return _itemImages[key];
+  }
 
   // Check if a product is in wishlist
   bool isInWishlist(String productId, {String? variantId}) {
@@ -47,6 +57,10 @@ class WishlistProvider extends ChangeNotifier {
       if (result['success']) {
         _wishlistItems = result['data']['items'] ?? [];
         _wishlistCount = result['data']['count'] ?? 0;
+
+        // Load variant-specific images for each wishlist item
+        await _loadWishlistItemImages();
+
         print('Wishlist fetched successfully: ${_wishlistItems.length} items');
       } else {
         _setError(result['message'] ?? 'Failed to fetch wishlist');
@@ -58,6 +72,28 @@ class WishlistProvider extends ChangeNotifier {
     } finally {
       _setLoading(false);
     }
+  }
+
+  // Load variant-specific images for wishlist items
+  Future<void> _loadWishlistItemImages() async {
+    for (final item in _wishlistItems) {
+      if (item.productInfo.slug.isNotEmpty) {
+        try {
+          final imageUrl = await _imageService.getCartItemImageUrl(
+            item.productInfo.slug,
+            item.variantId,
+          );
+
+          if (imageUrl != null) {
+            final key = '${item.productId}_${item.variantId ?? 'default'}';
+            _itemImages[key] = imageUrl;
+          }
+        } catch (e) {
+          print('Error loading image for wishlist item ${item.id}: $e');
+        }
+      }
+    }
+    notifyListeners();
   }
 
   // Add item to wishlist
@@ -103,6 +139,11 @@ class WishlistProvider extends ChangeNotifier {
         _wishlistItems.removeWhere((item) =>
             item.productId == productId && item.variantId == variantId);
         _wishlistCount = _wishlistItems.length;
+
+        // Remove cached image
+        final key = '${productId}_${variantId ?? 'default'}';
+        _itemImages.remove(key);
+
         notifyListeners();
 
         _clearError();
@@ -136,6 +177,7 @@ class WishlistProvider extends ChangeNotifier {
       if (result['success']) {
         _wishlistItems.clear();
         _wishlistCount = 0;
+        _itemImages.clear(); // Clear image cache
         notifyListeners();
         _clearError();
         return true;
@@ -198,6 +240,30 @@ class WishlistProvider extends ChangeNotifier {
     }
   }
 
+  // Update wishlist item image
+  Future<void> updateItemImage(
+      String productId, String? variantId, String productSlug) async {
+    try {
+      final imageUrl = await _imageService.getCartItemImageUrl(
+        productSlug,
+        variantId,
+      );
+
+      if (imageUrl != null) {
+        final key = '${productId}_${variantId ?? 'default'}';
+        _itemImages[key] = imageUrl;
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error updating wishlist item image: $e');
+    }
+  }
+
+  // Refresh wishlist items (pull to refresh)
+  Future<void> refreshWishlist() async {
+    await fetchWishlistItems();
+  }
+
   // Helper methods
   void _setLoading(bool loading) {
     _isLoading = loading;
@@ -220,6 +286,7 @@ class WishlistProvider extends ChangeNotifier {
     _wishlistCount = 0;
     _isLoading = false;
     _errorMessage = null;
+    _itemImages.clear(); // Clear image cache
     notifyListeners();
   }
 

@@ -1,9 +1,11 @@
-// lib/providers/cart_provider.dart
+// lib/providers/cart_provider.dart - Enhanced version adding missing methods to your existing provider
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../api/services/cart_service.dart';
 import '../api/services/cart_image_service.dart';
 import '../core/models/cart_item_model.dart';
 import '../core/models/product_model.dart';
+import '../config/theme.dart';
 
 class CartProvider with ChangeNotifier {
   final CartService _cartService = CartService();
@@ -28,10 +30,59 @@ class CartProvider with ChangeNotifier {
     return total;
   }
 
+  // Additional getters needed for the enhanced cart UI
+  int get totalQuantity {
+    int total = 0;
+    for (var item in _items) {
+      total += item.quantity;
+    }
+    return total;
+  }
+
+  double get subtotal => totalAmount;
+
+  double get taxAmount => totalAmount * 0.0; // 0% tax for now
+
+  double get shippingCost {
+    if (totalAmount >= 500) return 0.0; // Free shipping over ₹500
+    return totalAmount > 0 ? 50.0 : 0.0; // ₹50 shipping fee
+  }
+
+  double get finalTotal => subtotal + taxAmount + shippingCost;
+
+  bool get hasItems => _items.isNotEmpty;
+
+  bool get isEmpty => _items.isEmpty;
+
+  double get totalSavings {
+    double savings = 0.0;
+    for (var item in _items) {
+      if (item.hasDiscount) {
+        savings += (item.regularPrice - item.salePrice) * item.quantity;
+      }
+    }
+    return savings;
+  }
+
+  String get estimatedDeliveryDate {
+    final now = DateTime.now();
+    final deliveryDate = now.add(const Duration(days: 3)); // 3 days delivery
+    return '${deliveryDate.day}/${deliveryDate.month}/${deliveryDate.year}';
+  }
+
   // Get cached image URL for a cart item
   String? getItemImageUrl(CartItem item) {
     final key = '${item.productId}_${item.variantId ?? 'default'}';
     return _itemImages[key];
+  }
+
+  // Get item by ID
+  CartItem? getItemById(int itemId) {
+    try {
+      return _items.firstWhere((item) => item.id == itemId);
+    } catch (e) {
+      return null;
+    }
   }
 
   // Fetch cart items from API
@@ -235,8 +286,8 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Clear cart
-  Future<void> clear() async {
+  // Clear cart - renamed from 'clear' to 'clearCart' to match the cart page usage
+  Future<void> clearCart() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -262,8 +313,18 @@ class CartProvider with ChangeNotifier {
     }
   }
 
+  // Keep the original clear method for backward compatibility
+  Future<void> clear() async {
+    await clearCart();
+  }
+
   // Refresh cart items (pull to refresh)
   Future<void> refreshCart() async {
+    await fetchCartItems();
+  }
+
+  // Refresh method alias
+  Future<void> refresh() async {
     await fetchCartItems();
   }
 
@@ -290,6 +351,11 @@ class CartProvider with ChangeNotifier {
     return item.quantity;
   }
 
+  // Alias for getProductQuantity to match different naming conventions
+  int getQuantityForProduct(String productId, {String? variantId}) {
+    return getProductQuantity(productId, variantId: variantId);
+  }
+
   // Update cart item with variant-specific image
   Future<void> updateItemImage(
       String productId, String? variantId, String productSlug) async {
@@ -307,5 +373,150 @@ class CartProvider with ChangeNotifier {
     } catch (e) {
       print('Error updating item image: $e');
     }
+  }
+
+  // Show cart summary as bottom sheet
+  void showCartSummary(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Text(
+                    'Cart Summary',
+                    style: TextStyle(
+                      fontSize: AppTheme.getTitleFontSize(context),
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+
+            const Divider(),
+
+            // Cart items
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _items.length,
+                itemBuilder: (context, index) {
+                  final item = _items[index];
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.grey.shade200,
+                        image: item.imageUrl.isNotEmpty
+                            ? DecorationImage(
+                                image: NetworkImage(item.imageUrl),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child: item.imageUrl.isEmpty
+                          ? const Icon(Icons.image, color: Colors.grey)
+                          : null,
+                    ),
+                    title: Text(
+                      item.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text('Qty: ${item.quantity}'),
+                    trailing: Text(
+                      '₹${item.totalPrice.toStringAsFixed(0)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const Divider(),
+
+            // Total
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Total',
+                    style: TextStyle(
+                      fontSize: AppTheme.getTitleFontSize(context),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '₹${finalTotal.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: AppTheme.getTitleFontSize(context),
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Get cart summary as a formatted string
+  String getCartSummary() {
+    if (isEmpty) return 'Cart is empty';
+
+    return '$itemCount items • ₹${totalAmount.toStringAsFixed(0)}';
+  }
+
+  // Check if cart needs update
+  bool get needsUpdate {
+    // You can implement logic to check if cart data is stale
+    return false;
   }
 }
