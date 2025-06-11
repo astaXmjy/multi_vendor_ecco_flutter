@@ -240,6 +240,116 @@ class _EnhancedCartItemCardState extends State<EnhancedCartItemCard> {
     }
   }
 
+  Widget _buildSellerInfo(bool isCompact) {
+    // Only show seller info if we have the data
+    if (widget.item.brandName.isEmpty &&
+        widget.item.sellerUsername.isEmpty &&
+        widget.item.sellerBusinessName.isEmpty) {
+      return SizedBox.shrink();
+    }
+
+    return Container(
+      margin: EdgeInsets.only(top: isCompact ? 6 : 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // BRAND NAME DISPLAY (from API field: brand_name)
+          if (widget.item.brandName.isNotEmpty)
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: isCompact ? 8 : 10,
+                vertical: isCompact ? 4 : 6,
+              ),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppTheme.primaryColor.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.local_offer,
+                    size: isCompact ? 12 : 14,
+                    color: AppTheme.primaryColor,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    widget.item
+                        .brandName, // Shows: "Kart Avenue", "Individual Designs"
+                    style: TextStyle(
+                      fontSize: isCompact ? 11 : 12,
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // SELLER USERNAME DISPLAY (from API field: seller_username)
+          if (widget.item.sellerUsername.isNotEmpty) ...[
+            SizedBox(height: isCompact ? 4 : 6),
+            Row(
+              children: [
+                Icon(
+                  Icons.store,
+                  size: isCompact ? 11 : 12,
+                  color: Colors.grey.shade600,
+                ),
+                SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    'Sold by ${widget.item.sellerUsername}', // Shows: "Sold by Anugami pvt ltd", "Sold by Parveen Daga"
+                    style: TextStyle(
+                      fontSize: isCompact ? 10 : 11,
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+
+          // SELLER BUSINESS NAME DISPLAY (from API field: seller_business_name)
+          if (widget.item.sellerBusinessName.isNotEmpty &&
+              widget.item.sellerBusinessName != widget.item.sellerUsername) ...[
+            SizedBox(height: 2),
+            Row(
+              children: [
+                Icon(
+                  Icons.business,
+                  size: isCompact ? 11 : 12,
+                  color: Colors.grey.shade500,
+                ),
+                SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    widget.item
+                        .sellerBusinessName, // Shows: "ANUGAMI24 TECHNOLOGIES PRIVATE LIMITED", "ID EXPORTS PRIVATE LIMITED"
+                    style: TextStyle(
+                      fontSize: isCompact ? 9 : 10,
+                      color: Colors.grey.shade600,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildPlaceholderImage() {
     return Container(
       color: Colors.grey.shade200,
@@ -284,6 +394,8 @@ class _EnhancedCartItemCardState extends State<EnhancedCartItemCard> {
             ),
           ],
         ),
+
+        _buildSellerInfo(isCompact),
 
         // Variant Information Section
         if (widget.item.variantId != null) ...[
