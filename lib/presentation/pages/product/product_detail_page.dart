@@ -171,6 +171,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           }
 
           final product = productProvider.selectedProduct;
+          print(product?.isWishlisted);
           if (product == null) {
             return const Center(
               child: Text('Product not found'),

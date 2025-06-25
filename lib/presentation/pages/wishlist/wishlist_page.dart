@@ -1,14 +1,14 @@
 // lib/presentation/pages/wishlist/wishlist_page.dart
-import 'package:anu_app/presentation/pages/shared/custom_bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../providers/wishlist_provider.dart';
 import '../../../config/theme.dart';
 import '../../../core/models/wishlist_item_model.dart';
-import 'widgets/wishlist_item_card.dart';
+import '../shared/custom_bottom_nav.dart';
+import '../shared/custom_app_bar.dart';
+import 'widgets/enhanced_wishlist_item_card.dart';
 import 'widgets/empty_wishlist.dart';
-import 'widgets/wishlist_loading.dart';
 
 class WishlistPage extends StatefulWidget {
   const WishlistPage({Key? key}) : super(key: key);
@@ -21,150 +21,268 @@ class _WishlistPageState extends State<WishlistPage> {
   @override
   void initState() {
     super.initState();
-    // Fetch wishlist items when page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<WishlistProvider>().fetchWishlistItems();
+      _loadWishlist();
     });
+  }
+
+  Future<void> _loadWishlist() async {
+    final wishlistProvider =
+        Provider.of<WishlistProvider>(context, listen: false);
+    await wishlistProvider.fetchWishlistItems();
+  }
+
+  Future<void> _refreshWishlist() async {
+    await _loadWishlist();
+  }
+
+  void _showRemoveConfirmation(BuildContext context, WishlistItemModel item) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Remove from Wishlist'),
+          content: Text(
+              'Are you sure you want to remove "${item.productInfo.name}" from your wishlist?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _removeFromWishlist(item);
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.errorColor,
+              ),
+              child: const Text('Remove'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _removeFromWishlist(WishlistItemModel item) async {
+    final wishlistProvider =
+        Provider.of<WishlistProvider>(context, listen: false);
+
+    final success = await wishlistProvider.removeFromWishlist(
+      item.productId,
+      variantId: item.variantId,
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? 'Removed from wishlist'
+              : 'Failed to remove from wishlist'),
+          backgroundColor:
+              success ? AppTheme.successColor : AppTheme.errorColor,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _addToCart(WishlistItemModel item) async {
+    if (!item.productInfo.isAvailable || !item.productInfo.hasValidPrice) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This item is not available for purchase'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+      return;
+    }
+
+    final wishlistProvider =
+        Provider.of<WishlistProvider>(context, listen: false);
+
+    final success = await wishlistProvider.addWishlistItemToCart(item);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? 'Added to cart' : 'Failed to add to cart'),
+          backgroundColor:
+              success ? AppTheme.successColor : AppTheme.errorColor,
+          duration: const Duration(seconds: 2),
+          action: success
+              ? SnackBarAction(
+                  label: 'View Cart',
+                  textColor: Colors.white,
+                  onPressed: () => context.go('/cart'),
+                )
+              : null,
+        ),
+      );
+    }
+  }
+
+  Future<void> _moveToCart(WishlistItemModel item) async {
+    if (!item.productInfo.isAvailable || !item.productInfo.hasValidPrice) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This item is not available for purchase'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+      return;
+    }
+
+    final wishlistProvider =
+        Provider.of<WishlistProvider>(context, listen: false);
+
+    final success = await wishlistProvider.moveToCart(item);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? 'Moved to cart' : 'Failed to move to cart'),
+          backgroundColor:
+              success ? AppTheme.successColor : AppTheme.errorColor,
+          duration: const Duration(seconds: 2),
+          action: success
+              ? SnackBarAction(
+                  label: 'View Cart',
+                  textColor: Colors.white,
+                  onPressed: () => context.go('/cart'),
+                )
+              : null,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isTablet = AppTheme.isTablet(context);
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: _buildAppBar(context),
-      body: _buildBody(context),
-      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 3),
-    );
-  }
+      appBar: CustomAppBar(
+        title: 'My Wishlist',
+        showBackButton: true,
+        actions: [
+          Consumer<WishlistProvider>(
+            builder: (context, wishlistProvider, child) {
+              if (wishlistProvider.isEmpty || wishlistProvider.isLoading) {
+                return const SizedBox.shrink();
+              }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      backgroundColor: AppTheme.primaryColor,
-      foregroundColor: Colors.white,
-      elevation: 0,
-      title: const Text(
-        'My Wishlist',
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 20,
-        ),
-      ),
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios),
-        onPressed: () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/home');
-          }
-        },
-      ),
-      actions: [
-        Consumer<WishlistProvider>(
-          builder: (context, wishlistProvider, child) {
-            if (wishlistProvider.wishlistItems.isNotEmpty) {
               return PopupMenuButton<String>(
-                onSelected: (value) async {
-                  if (value == 'clear_all') {
-                    await _showClearWishlistDialog(context);
+                icon: const Icon(Icons.more_vert, color: Colors.white),
+                onSelected: (value) {
+                  switch (value) {
+                    case 'clear_all':
+                      _showClearAllConfirmation(context);
+                      break;
+                    case 'move_all_to_cart':
+                      _moveAllToCart();
+                      break;
                   }
                 },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
+                itemBuilder: (BuildContext context) => [
+                  const PopupMenuItem<String>(
+                    value: 'move_all_to_cart',
+                    child: Row(
+                      children: [
+                        Icon(Icons.shopping_cart, size: 20),
+                        SizedBox(width: 8),
+                        Text('Move All to Cart'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
                     value: 'clear_all',
                     child: Row(
                       children: [
-                        Icon(Icons.clear_all, color: Colors.red),
+                        Icon(Icons.clear_all,
+                            size: 20, color: AppTheme.errorColor),
                         SizedBox(width: 8),
-                        Text('Clear All'),
+                        Text('Clear All',
+                            style: TextStyle(color: AppTheme.errorColor)),
                       ],
                     ),
                   ),
                 ],
               );
-            }
-            return const SizedBox.shrink();
-          },
-        ),
-      ],
+            },
+          ),
+        ],
+      ),
+      body: Consumer<WishlistProvider>(
+        builder: (context, wishlistProvider, child) {
+          if (wishlistProvider.isLoading) {
+            return _buildLoadingState();
+          }
+
+          if (wishlistProvider.errorMessage != null) {
+            return _buildErrorState(wishlistProvider.errorMessage!);
+          }
+
+          if (wishlistProvider.isEmpty) {
+            return const EmptyWishlist();
+          }
+
+          return _buildWishlistContent(context, wishlistProvider, isTablet);
+        },
+      ),
+      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 3),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
-    return Consumer<WishlistProvider>(
-      builder: (context, wishlistProvider, child) {
-        if (wishlistProvider.isLoading) {
-          return const WishlistLoading();
-        }
-
-        if (wishlistProvider.errorMessage != null) {
-          return _buildErrorState(context, wishlistProvider.errorMessage!);
-        }
-
-        if (wishlistProvider.isEmpty) {
-          return const EmptyWishlist();
-        }
-
-        return _buildWishlistContent(context, wishlistProvider);
-      },
+  Widget _buildLoadingState() {
+    return const Center(
+      child: CircularProgressIndicator(
+        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+      ),
     );
   }
 
-  Widget _buildErrorState(BuildContext context, String errorMessage) {
+  Widget _buildErrorState(String error) {
     return Center(
       child: Padding(
         padding: AppTheme.getResponsivePadding(context),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.error_outline,
-                size: 60,
-                color: Colors.red.shade300,
-              ),
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: AppTheme.errorColor.withOpacity(0.6),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Text(
-              'Oops! Something went wrong',
+              'Something went wrong',
               style: TextStyle(
-                fontSize: AppTheme.getTitleFontSize(context),
+                fontSize: AppTheme.getHeadlineFontSize(context),
                 fontWeight: FontWeight.bold,
                 color: AppTheme.textPrimary,
               ),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              errorMessage,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
+              error,
+              style: const TextStyle(
+                fontSize: 16,
                 color: AppTheme.textSecondary,
               ),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: () {
-                context.read<WishlistProvider>().fetchWishlistItems();
-              },
+              onPressed: _refreshWishlist,
               icon: const Icon(Icons.refresh),
               label: const Text('Try Again'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
               ),
             ),
           ],
@@ -174,232 +292,126 @@ class _WishlistPageState extends State<WishlistPage> {
   }
 
   Widget _buildWishlistContent(
-      BuildContext context, WishlistProvider provider) {
-    final screenSize = AppTheme.getScreenSize(context);
-    final crossAxisCount = screenSize == ScreenSize.mobile ? 1 : 2;
-
+      BuildContext context, WishlistProvider wishlistProvider, bool isTablet) {
     return RefreshIndicator(
-      onRefresh: () => provider.fetchWishlistItems(),
+      onRefresh: _refreshWishlist,
       color: AppTheme.primaryColor,
-      child: CustomScrollView(
-        slivers: [
-          // Wishlist header with count
-          SliverToBoxAdapter(
-            child: Container(
-              padding: AppTheme.getResponsivePadding(context),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${provider.wishlistCount} ${provider.wishlistCount == 1 ? 'Item' : 'Items'}',
-                        style: TextStyle(
-                          fontSize: AppTheme.getTitleFontSize(context),
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Swipe to remove items',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (provider.wishlistCount > 1)
-                    TextButton.icon(
-                      onPressed: () => _showMoveAllToCartDialog(context),
-                      icon: const Icon(Icons.shopping_cart_outlined),
-                      label: const Text('Add All to Cart'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppTheme.primaryColor,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-
-          // Wishlist items grid/list
-          SliverPadding(
-            padding: EdgeInsets.symmetric(
-              horizontal: AppTheme.isMobile(context) ? 16 : 24,
-            ),
-            sliver: SliverGrid(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final item = provider.wishlistItems[index];
-                  return WishlistItemCard(
-                    item: item,
-                    onRemove: () => _removeItem(context, item),
-                    onAddToCart: () => _addToCart(context, item),
-                    onTap: () => _navigateToProduct(context, item),
-                  );
-                },
-                childCount: provider.wishlistItems.length,
-              ),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                childAspectRatio: AppTheme.isMobile(context) ? 0.8 : 0.75,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-            ),
-          ),
-
-          // Bottom spacing
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 100),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (isTablet && constraints.maxWidth > 800) {
+            // Tablet/Desktop layout with grid
+            return _buildGridLayout(wishlistProvider);
+          } else {
+            // Mobile layout with list
+            return _buildListLayout(wishlistProvider);
+          }
+        },
       ),
     );
   }
 
-  // Helper methods
-  Future<void> _removeItem(BuildContext context, WishlistItemModel item) async {
-    final success = await context.read<WishlistProvider>().removeFromWishlist(
-          item.productId,
-          variantId: item.variantId,
+  Widget _buildListLayout(WishlistProvider wishlistProvider) {
+    return ListView.builder(
+      padding: AppTheme.getResponsivePadding(context),
+      itemCount: wishlistProvider.wishlistItems.length,
+      itemBuilder: (context, index) {
+        final item = wishlistProvider.wishlistItems[index];
+        return EnhancedWishlistItemCard(
+          item: item,
+          onRemove: () => _showRemoveConfirmation(context, item),
+          onAddToCart: () => _addToCart(item),
         );
+      },
+    );
+  }
 
-    if (success && mounted) {
+  Widget _buildGridLayout(WishlistProvider wishlistProvider) {
+    return GridView.builder(
+      padding: AppTheme.getResponsivePadding(context),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: wishlistProvider.wishlistItems.length,
+      itemBuilder: (context, index) {
+        final item = wishlistProvider.wishlistItems[index];
+        return EnhancedWishlistItemCard(
+          item: item,
+          onRemove: () => _showRemoveConfirmation(context, item),
+          onAddToCart: () => _addToCart(item),
+        );
+      },
+    );
+  }
+
+  void _showClearAllConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Clear Wishlist'),
+          content: const Text(
+              'Are you sure you want to remove all items from your wishlist? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _clearAllItems();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.errorColor,
+              ),
+              child: const Text('Clear All'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _clearAllItems() async {
+    final wishlistProvider =
+        Provider.of<WishlistProvider>(context, listen: false);
+
+    final success = await wishlistProvider.clearWishlist();
+
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${item.productInfo.name} removed from wishlist'),
-          backgroundColor: AppTheme.successColor,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-          action: SnackBarAction(
-            label: 'Undo',
-            textColor: Colors.white,
-            onPressed: () {
-              context.read<WishlistProvider>().addToWishlist(
-                    item.productId,
-                    variantId: item.variantId,
-                  );
-            },
-          ),
+          content:
+              Text(success ? 'Wishlist cleared' : 'Failed to clear wishlist'),
+          backgroundColor:
+              success ? AppTheme.successColor : AppTheme.errorColor,
         ),
       );
     }
   }
 
-  Future<void> _addToCart(BuildContext context, WishlistItemModel item) async {
-    final success =
-        await context.read<WishlistProvider>().addWishlistItemToCart(item);
+  Future<void> _moveAllToCart() async {
+    final wishlistProvider =
+        Provider.of<WishlistProvider>(context, listen: false);
+    final availableItems = wishlistProvider.wishlistItems
+        .where((item) =>
+            item.productInfo.isAvailable && item.productInfo.hasValidPrice)
+        .toList();
 
-    if (success && mounted) {
+    if (availableItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${item.productInfo.name} added to cart'),
-          backgroundColor: AppTheme.successColor,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-          action: SnackBarAction(
-            label: 'View Cart',
-            textColor: Colors.white,
-            onPressed: () => context.go('/cart'),
-          ),
+        const SnackBar(
+          content: Text('No available items to move to cart'),
+          backgroundColor: AppTheme.warningColor,
         ),
       );
+      return;
     }
-  }
 
-  void _navigateToProduct(BuildContext context, WishlistItemModel item) {
-    context.go('/product/${item.productInfo.slug}');
-  }
-
-  Future<void> _showClearWishlistDialog(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        title: const Text(
-          'Clear Wishlist',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          'Are you sure you want to remove all items from your wishlist? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Clear All'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      final success = await context.read<WishlistProvider>().clearWishlist();
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Wishlist cleared successfully'),
-            backgroundColor: AppTheme.successColor,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _showMoveAllToCartDialog(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        title: const Text(
-          'Add All to Cart',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          'Would you like to add all wishlist items to your cart?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Add All'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      await _addAllToCart(context);
-    }
-  }
-
-  Future<void> _addAllToCart(BuildContext context) async {
-    final provider = context.read<WishlistProvider>();
-    final items = provider.wishlistItems;
-
+    // Show loading indicator
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -409,38 +421,29 @@ class _WishlistPageState extends State<WishlistPage> {
     );
 
     int successCount = 0;
-    int totalItems = items.length;
-
-    for (final item in items) {
-      final success = await provider.addWishlistItemToCart(item);
+    for (final item in availableItems) {
+      final success = await wishlistProvider.moveToCart(item);
       if (success) successCount++;
     }
 
     if (mounted) {
       Navigator.of(context).pop(); // Close loading dialog
 
-      if (successCount == totalItems) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('All $successCount items added to cart'),
-            backgroundColor: AppTheme.successColor,
-            behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: 'View Cart',
-              textColor: Colors.white,
-              onPressed: () => context.go('/cart'),
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$successCount of $totalItems items added to cart'),
-            backgroundColor: AppTheme.warningColor,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Moved $successCount of ${availableItems.length} items to cart'),
+          backgroundColor:
+              successCount > 0 ? AppTheme.successColor : AppTheme.errorColor,
+          action: successCount > 0
+              ? SnackBarAction(
+                  label: 'View Cart',
+                  textColor: Colors.white,
+                  onPressed: () => context.go('/cart'),
+                )
+              : null,
+        ),
+      );
     }
   }
 }

@@ -1,6 +1,9 @@
 // lib/config/routes.dart
+import 'package:anu_app/presentation/widgets/reviews/review_form.dart';
+import 'package:anu_app/providers/user_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../presentation/pages/auth/login_page.dart';
 import '../presentation/pages/auth/create_account_page.dart';
 import '../presentation/pages/auth/address_form_page.dart';
@@ -16,12 +19,35 @@ import '../presentation/pages/product/products_page.dart';
 import '../presentation/pages/cart/cart_page.dart';
 import '../presentation/pages/cart/checkout_page.dart';
 import '../core/models/profile_model.dart';
+import '../presentation/pages/orders/orders_page.dart';
 
 class AppRoutes {
   static GoRouter createRouter({required bool isLoggedIn}) {
     return GoRouter(
       initialLocation: isLoggedIn ? '/home' : '/login',
       debugLogDiagnostics: true,
+      redirect: (context, state) {
+        final isLoginRoute = state.matchedLocation == '/login';
+        final isCreateAccountRoute = state.matchedLocation == '/create-account';
+
+        // Get current auth state from provider
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        final currentAuthState = userProvider.isLoggedIn;
+
+        // If auth state changed, update accordingly
+        if (currentAuthState != isLoggedIn) {
+          return currentAuthState ? '/home' : '/login';
+        }
+
+        // Original redirect logic
+        if (!isLoggedIn && !isLoginRoute && !isCreateAccountRoute) {
+          return '/login';
+        }
+        if (isLoggedIn && (isLoginRoute || isCreateAccountRoute)) {
+          return '/home';
+        }
+        return null;
+      },
       routes: [
         // Authentication Routes
         GoRoute(
@@ -156,6 +182,13 @@ class AppRoutes {
           builder: (context, state) => const CheckoutPage(),
         ),
 
+        // Orders Routes (New - Add these)
+        GoRoute(
+          path: '/orders',
+          name: 'orders',
+          builder: (context, state) => const OrdersPage(),
+        ),
+
         // Search Route
         GoRoute(
           path: '/search',
@@ -169,6 +202,22 @@ class AppRoutes {
             );
           },
         ),
+        // Review Routes
+        GoRoute(
+          path: '/product/:slug/review',
+          name: 'write-review',
+          builder: (context, state) {
+            final slug = state.pathParameters['slug']!;
+            return ReviewForm(
+              productSlug: slug,
+              onSuccess: () {
+                context.pop();
+              },
+            );
+          },
+        ),
+        //   ],
+        // );
       ],
 
       // Error handling with better UX
@@ -247,24 +296,6 @@ class AppRoutes {
           ),
         ),
       ),
-
-      // Redirect handling for authentication and route protection
-      redirect: (context, state) {
-        final isLoginRoute = state.matchedLocation == '/login';
-        final isCreateAccountRoute = state.matchedLocation == '/create-account';
-
-        // If user is not logged in and trying to access protected routes
-        if (!isLoggedIn && !isLoginRoute && !isCreateAccountRoute) {
-          return '/login';
-        }
-
-        // If user is logged in and trying to access auth routes, redirect to home
-        if (isLoggedIn && (isLoginRoute || isCreateAccountRoute)) {
-          return '/home';
-        }
-
-        return null; // No redirect needed
-      },
     );
   }
 
@@ -279,6 +310,10 @@ class AppRoutes {
 
   static void goToProduct(BuildContext context, String slug) {
     context.go('/product/$slug');
+  }
+
+  static void goToOrders(BuildContext context) {
+    context.go('/orders');
   }
 
   static void goToCategory(BuildContext context, String slug, String title) {

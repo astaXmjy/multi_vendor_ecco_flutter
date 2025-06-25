@@ -87,6 +87,7 @@ class HomeDrawer extends StatelessWidget {
               onTap: () {
                 // Navigate to orders page
                 Navigator.pop(context);
+                context.go('/orders');
               }),
           DrawerItem(
               icon: Icons.favorite,
@@ -101,6 +102,7 @@ class HomeDrawer extends StatelessWidget {
               onTap: () {
                 // Navigate to profile page
                 Navigator.pop(context);
+                context.go('/profile');
               }),
           DrawerItem(
               icon: Icons.location_on,

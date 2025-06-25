@@ -1,3 +1,4 @@
+import 'package:anu_app/presentation/pages/shared/custom_bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -68,6 +69,7 @@ class _CartPageState extends State<CartPage> {
           return _buildCartContent(context, cartProvider, isTablet);
         },
       ),
+      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 2),
     );
   }
 

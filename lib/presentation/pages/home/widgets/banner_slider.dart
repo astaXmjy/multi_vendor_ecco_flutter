@@ -23,7 +23,7 @@ class _BannerSliderState extends State<BannerSlider> {
       children: [
         CarouselSlider(
           options: CarouselOptions(
-              height: 180,
+              height: 330,
               viewportFraction: 1.0,
               enlargeCenterPage: false,
               autoPlay: true,

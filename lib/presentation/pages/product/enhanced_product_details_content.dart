@@ -1,5 +1,11 @@
 // lib/presentation/pages/product/enhanced_product_details_content.dart
+import 'package:anu_app/presentation/pages/product/widgets/trust_badges_widget.dart';
+import 'package:anu_app/presentation/widgets/reviews/average_rating_widget.dart';
+import 'package:anu_app/presentation/widgets/reviews/review_form.dart';
+import 'package:anu_app/presentation/widgets/reviews/review_list.dart';
 import 'package:anu_app/providers/product_provider.dart';
+import 'package:anu_app/providers/review_provider.dart';
+import 'package:anu_app/providers/wishlist_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -44,7 +50,9 @@ class _EnhancedProductDetailsContentState
   @override
   void initState() {
     super.initState();
+    print(widget.product.isWishlisted);
     _initializeVariants();
+    _loadSimilarProducts();
   }
 
   void _initializeVariants() {
@@ -53,6 +61,14 @@ class _EnhancedProductDetailsContentState
       _updateCurrentImages();
     } else {
       _currentImages = widget.product.images;
+    }
+  }
+
+  Future<void> _loadSimilarProducts() async {
+    if (widget.product.category.isNotEmpty) {
+      final productProvider =
+          Provider.of<ProductProvider>(context, listen: false);
+      await productProvider.loadProductsByCategory(widget.product.category);
     }
   }
 
@@ -92,6 +108,22 @@ class _EnhancedProductDetailsContentState
     return _selectedColor != null &&
         _selectedSize != null &&
         _selectedVariantId != null;
+  }
+
+  void _showReviewForm(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ReviewForm(
+          productSlug: widget.product.slug,
+          onSuccess: () {
+            // Refresh reviews after successful submission
+            context
+                .read<ReviewProvider>()
+                .getProductReviews(widget.product.slug);
+          },
+        ),
+      ),
+    );
   }
 
   void _addToCart() {
@@ -512,6 +544,269 @@ class _EnhancedProductDetailsContentState
     );
   }
 
+  // NEW: Build Similar Products Section
+  Widget _buildSimilarProductsSection() {
+    return Consumer<ProductProvider>(
+      builder: (context, productProvider, child) {
+        // Filter out the current product from similar products
+        final similarProducts = productProvider.categoryProducts
+            .where((product) => product.id != widget.product.id)
+            .take(10) // Limit to 10 products
+            .toList();
+
+        if (similarProducts.isEmpty && !productProvider.isLoadingCategory) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'You May Like This',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (similarProducts.length > 4)
+                    TextButton(
+                      onPressed: () {
+                        // Navigate to category products page
+                        final categoryName = widget.breadcrumbs.isNotEmpty
+                            ? widget.breadcrumbs.last.name
+                            : 'Products';
+                        context.push(
+                            '/products?type=category&title=$categoryName&category=${widget.product.category}');
+                      },
+                      child: const Text(
+                        'View All',
+                        style: TextStyle(
+                          color: Color(0xFFFF7A2E),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Loading state
+            if (productProvider.isLoadingCategory)
+              Container(
+                height: 280,
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFFFF7A2E),
+                  ),
+                ),
+              )
+            else
+              // Horizontal scrollable list of similar products
+              SizedBox(
+                height: 280,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: similarProducts.length,
+                  itemBuilder: (context, index) {
+                    final product = similarProducts[index];
+                    return Container(
+                      width: 160,
+                      margin: const EdgeInsets.only(right: 12),
+                      child: _buildSimilarProductCard(product),
+                    );
+                  },
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  // NEW: Build Similar Product Card
+  Widget _buildSimilarProductCard(ProductModel product) {
+    return GestureDetector(
+      onTap: () {
+        context.push('/product/${product.slug}');
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Product image
+            Expanded(
+              flex: 3,
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      topRight: Radius.circular(12),
+                    ),
+                    child: Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      color: Colors.grey[100],
+                      child: product.primaryImageUrl.isNotEmpty
+                          ? Image.network(
+                              product.primaryImageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (ctx, error, _) => Container(
+                                color: Colors.grey[100],
+                                child: Icon(
+                                  Icons.image,
+                                  color: Colors.grey[400],
+                                  size: 40,
+                                ),
+                              ),
+                            )
+                          : Icon(
+                              Icons.image,
+                              color: Colors.grey[400],
+                              size: 40,
+                            ),
+                    ),
+                  ),
+
+                  // Discount badge
+                  if (product.discountPercentage.isNotEmpty)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF4947),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          product.discountPercentage,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Wishlist button
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Consumer<WishlistProvider>(
+                      builder: (context, wishlistProvider, child) {
+                        final isWishlisted = wishlistProvider
+                            .isInWishlist(product.id.toString());
+                        return GestureDetector(
+                          onTap: () async {
+                            await Provider.of<ProductProvider>(context,
+                                    listen: false)
+                                .toggleWishlist(product, context);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.9),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isWishlisted
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: isWishlisted
+                                  ? const Color(0xFFFF4947)
+                                  : Colors.grey,
+                              size: 16,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Product info
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Product name
+                    Text(
+                      product.name,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    const Spacer(),
+
+                    // Price section
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.formattedSalePrice,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFFF7A2E),
+                          ),
+                        ),
+                        if (product.discountPercentage.isNotEmpty)
+                          Text(
+                            product.formattedRegularPrice,
+                            style: TextStyle(
+                              fontSize: 10,
+                              decoration: TextDecoration.lineThrough,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -562,19 +857,29 @@ class _EnhancedProductDetailsContentState
                               ),
                             ),
                           ),
-                          IconButton(
-                            icon: Icon(
-                              widget.product.isWishlisted
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: widget.product.isWishlisted
-                                  ? const Color(0xFFFF4947)
-                                  : Colors.grey,
-                            ),
-                            onPressed: () async {
-                              await Provider.of<ProductProvider>(context,
-                                      listen: false)
-                                  .toggleWishlist(widget.product, context);
+                          Consumer<WishlistProvider>(
+                            builder: (context, wishlistProvider, child) {
+                              final isWishlisted = wishlistProvider
+                                  .isInWishlist(widget.product.id.toString());
+
+                              return IconButton(
+                                icon: Icon(
+                                  isWishlisted
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: isWishlisted
+                                      ? const Color(0xFFFF4947)
+                                      : Colors.grey,
+                                ),
+                                onPressed: () async {
+                                  await Provider.of<ProductProvider>(context,
+                                          listen: false)
+                                      .toggleWishlist(widget.product, context);
+                                },
+                                tooltip: isWishlisted
+                                    ? 'Remove from Wishlist'
+                                    : 'Add to Wishlist',
+                              );
                             },
                           ),
                         ],
@@ -595,6 +900,16 @@ class _EnhancedProductDetailsContentState
 
                       // Price section
                       _buildPriceSection(),
+
+                      const SizedBox(height: 16),
+
+                      // Average Rating Section
+                      AverageRatingWidget(productSlug: widget.product.slug),
+
+                      const SizedBox(height: 20),
+
+                      // Trust Badge Section
+                      const TrustBadgesWidget(),
 
                       const SizedBox(height: 16),
 
@@ -626,7 +941,43 @@ class _EnhancedProductDetailsContentState
                       const SizedBox(height: 12),
                       _buildHtmlDescription(),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 32),
+
+                      // Reviews Section
+                      const Text(
+                        'Reviews & Ratings',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Write Review Button
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            _showReviewForm(context);
+                          },
+                          icon: const Icon(Icons.rate_review),
+                          label: const Text('Write a Review'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFFF7A2E),
+                            side: const BorderSide(color: Color(0xFFFF7A2E)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Reviews List
+                      ReviewList(productSlug: widget.product.slug),
+
+                      const SizedBox(height: 32),
 
                       // Brand info
                       if (widget.product.brand.name.isNotEmpty) ...[
@@ -746,11 +1097,14 @@ class _EnhancedProductDetailsContentState
                         ),
                         const SizedBox(height: 20),
                       ],
-
-                      const SizedBox(height: 100), // Space for bottom buttons
                     ],
                   ),
                 ),
+
+                // Similar Products Section - Added here
+                _buildSimilarProductsSection(),
+
+                const SizedBox(height: 100), // Space for bottom buttons
               ],
             ),
           ),

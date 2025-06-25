@@ -1,4 +1,6 @@
 // lib/presentation/pages/auth/login_page.dart
+import 'dart:async';
+
 import 'package:anu_app/providers/wishlist_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'dart:developer' as developer;
 import '../../../api/services/auth_service.dart';
 import '../../../providers/user_provider.dart';
+import 'package:flutter/foundation.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -62,34 +65,21 @@ class _LoginPageState extends State<LoginPage> {
 
       // Handle response
       if (result['success']) {
-        // Login successful - Update UserProvider
         if (mounted) {
-          final userProvider =
-              Provider.of<UserProvider>(context, listen: false);
+          final userProvider = Provider.of<UserProvider>(context, listen: false);
+          userProvider.processLoginData(result['data']);
 
-          // If the result includes data, update the provider with login data format
-          if (result['data'] != null) {
-            developer.log('Processing login data: ${result['data']}');
-            userProvider.processLoginData(result['data']);
-          } else {
-            // If data wasn't included in the login response, fetch it
-            developer.log('No data in login response, fetching user data...');
-            final userData = await _authService.getUserData();
-            if (userData != null) {
-              userProvider.setUserData(userData);
-            }
-          }
-          try {
-            final wishlistProvider =
-                Provider.of<WishlistProvider>(context, listen: false);
-            await wishlistProvider.initialize();
-            developer.log('Wishlist initialized successfully after login');
-          } catch (e) {
-            developer.log('Failed to initialize wishlist after login: $e');
-          }
-
-          // Navigate to the home page
+          // Navigate immediately after setting user data
           context.go('/home');
+
+          // Initialize wishlist in background
+          unawaited(
+            Provider.of<WishlistProvider>(context, listen: false)
+                .initialize()
+                .catchError((e) {
+              developer.log('Background wishlist init error: $e');
+            }),
+          );
         }
       } else {
         // Login failed
@@ -105,6 +95,10 @@ class _LoginPageState extends State<LoginPage> {
         _errorMessage = 'An unexpected error occurred. Please try again.';
         _isLoading = false;
       });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

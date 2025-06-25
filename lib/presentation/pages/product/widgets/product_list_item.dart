@@ -198,6 +198,7 @@ class ProductListItem extends StatelessWidget {
                         builder: (context, wishlistProvider, child) {
                           final isWishlisted = wishlistProvider
                               .isInWishlist(product.id.toString());
+                          print(isWishlisted);
 
                           return IconButton(
                             onPressed: () async {

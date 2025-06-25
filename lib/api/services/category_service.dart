@@ -11,10 +11,11 @@ class CategoryService {
   Future<List<CategoryModel>> getCategories() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/categories/'));
-
+      print(response.body);
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         final List<dynamic> results = data['results'];
+        print(results);
 
         return results.map((item) => CategoryModel.fromJson(item)).toList();
       } else {
@@ -32,6 +33,7 @@ class CategoryService {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        print(data);
 
         return data.map((item) => CategoryModel.fromTreeJson(item)).toList();
       } else {
