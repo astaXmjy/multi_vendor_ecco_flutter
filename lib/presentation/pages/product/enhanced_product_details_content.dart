@@ -104,7 +104,10 @@ class _EnhancedProductDetailsContentState
   }
 
   bool _isAddToCartEnabled() {
-    if (widget.variantData == null) return true;
+    print("this is for test");
+    print(widget.variantData);
+    if (widget.variantData == null || widget.variantData!.colors.isEmpty)
+      return true;
     return _selectedColor != null &&
         _selectedSize != null &&
         _selectedVariantId != null;
