@@ -1,3 +1,4 @@
+import 'package:anu_app/presentation/widgets/payment_tracking_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -6,10 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../providers/cart_provider.dart';
 import '../../../api/services/order_service.dart';
 import '../../../core/models/order_model.dart';
-import '../../widgets/payment_tracking_dialog.dart';
-import '../shared/custom_app_bar.dart';
 
-// Add this import for debugging
+// Add imports for enhanced webhook support
 import '../../../api/services/debug_service.dart';
 
 class CheckoutPage extends StatefulWidget {
@@ -61,6 +60,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return;
     }
 
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
     });
@@ -84,39 +85,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
       print('Checkout payload: $shippingAddress');
       print('Payment method: $_paymentMethod');
 
-      // Call checkout API
-      final checkoutResult = await _orderService.checkout(
-        shippingAddress: shippingAddress,
-        paymentMethod: _paymentMethod,
-        clearCart: true,
-      );
-
-      print('Checkout result: $checkoutResult');
-
-      if (!mounted) return;
-
-      if (checkoutResult['success']) {
-        final data = checkoutResult['data'];
-        final orders = (data['orders'] as List<dynamic>)
-            .map((order) => OrderModel.fromJson(order))
-            .toList();
-
-        setState(() {
-          _createdOrders = orders;
-        });
-
-        // Show success message
-        _showSuccessMessage('${orders.length} order(s) created successfully!');
-
-        // If payment method is not COD, initiate payment
-        if (_paymentMethod != 'COD' && orders.isNotEmpty) {
-          await _initiatePayment(orders.first.id);
-        } else {
-          // Clear cart and navigate
-          await _clearCartAndNavigate();
-        }
+      // For COD orders, proceed with checkout immediately
+      if (_paymentMethod == 'COD') {
+        await _processCODOrder(shippingAddress);
       } else {
-        _showError(checkoutResult['message'] ?? 'Checkout failed');
+        // For online payments, first create order then initiate payment
+        await _processOnlinePaymentOrder(shippingAddress);
       }
     } catch (e) {
       print('Checkout exception: $e');
@@ -132,17 +106,192 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
   }
 
-  Future<void> _initiatePayment(int orderId) async {
+  Future<void> _processCODOrder(Map<String, dynamic> shippingAddress) async {
+    // For COD, complete the checkout process
+    final checkoutResult = await _orderService.checkout(
+      shippingAddress: shippingAddress,
+      paymentMethod: _paymentMethod,
+      clearCart: true,
+    );
+
+    print('COD Checkout result: $checkoutResult');
+
+    if (!mounted) return;
+
+    if (checkoutResult['success']) {
+      final data = checkoutResult['data'];
+      List<dynamic> ordersData = data['orders'] ?? [];
+
+      if (ordersData.isNotEmpty) {
+        final orders =
+            ordersData.map((order) => OrderModel.fromJson(order)).toList();
+
+        if (mounted) {
+          setState(() {
+            _createdOrders = orders;
+          });
+
+          _showSuccessMessage(
+              'Order placed successfully! You can pay cash on delivery.');
+
+          // Navigate after delay
+          await Future.delayed(const Duration(milliseconds: 1500));
+          if (mounted) {
+            await _clearCartAndNavigate();
+          }
+        }
+      } else {
+        if (mounted) {
+          _showError('No orders were created');
+        }
+      }
+    } else {
+      if (mounted) {
+        _showError(checkoutResult['message'] ?? 'Order creation failed');
+      }
+    }
+  }
+
+  Future<void> _processOnlinePaymentOrder(
+      Map<String, dynamic> shippingAddress) async {
+    // For online payments, don't create order yet - first get payment confirmation
+    // Show payment initiation dialog first
+    if (!mounted) return;
+
+    _showPaymentInitiationDialog(shippingAddress);
+  }
+
+  void _showPaymentInitiationDialog(Map<String, dynamic> shippingAddress) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.payment,
+              color: Color(0xFFFF7A2E),
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Proceed to Payment',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'You will be redirected to PhonePe to complete your payment of ₹${Provider.of<CartProvider>(context, listen: false).totalAmount.toStringAsFixed(0)}',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                      await _initiatePaymentFlow(shippingAddress);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF7A2E),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Pay Now'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _initiatePaymentFlow(
+      Map<String, dynamic> shippingAddress) async {
+    if (!mounted) return;
+
     setState(() {
       _processingPayment = true;
     });
 
     try {
+      // First create the order
+      final checkoutResult = await _orderService.checkout(
+        shippingAddress: shippingAddress,
+        paymentMethod: _paymentMethod,
+        clearCart: false, // Don't clear cart yet - wait for payment success
+      );
+
+      if (!mounted) return;
+
+      if (checkoutResult['success']) {
+        final data = checkoutResult['data'];
+        List<dynamic> ordersData = data['orders'] ?? [];
+
+        if (ordersData.isNotEmpty) {
+          final orders =
+              ordersData.map((order) => OrderModel.fromJson(order)).toList();
+          final order = orders.first;
+
+          setState(() {
+            _createdOrders = orders;
+          });
+
+          // Now initiate payment
+          await _initiatePayment(order.id);
+        } else {
+          _showError('Failed to create order');
+        }
+      } else {
+        _showError(checkoutResult['message'] ?? 'Order creation failed');
+      }
+    } catch (e) {
+      if (mounted) {
+        _showError('Error creating order: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _processingPayment = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _initiatePayment(int orderId) async {
+    if (!mounted) return;
+
+    setState(() {
+      _processingPayment = true;
+    });
+
+    try {
+      // Use your existing Django callback URLs
       final paymentResult = await _orderService.initiatePayment(
         orderId: orderId,
-        callbackUrl: 'https://yourapp.com/payment/callback',
-        redirectUrl: 'https://yourapp.com/payment/success',
+        // Don't override your Django callback URLs
       );
+
+      if (!mounted) return;
 
       if (paymentResult['success']) {
         final paymentUrl = paymentResult['data']['payment_url'];
@@ -158,7 +307,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
         _showError(paymentResult['message'] ?? 'Payment initiation failed');
       }
     } catch (e) {
-      _showError('Payment error: $e');
+      if (mounted) {
+        _showError('Payment error: $e');
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -170,30 +321,80 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Future<void> _launchPaymentUrl(
       String paymentUrl, int orderId, String transactionId) async {
+    if (!mounted) return;
+
     try {
+      print('Attempting to launch URL: $paymentUrl');
+
       final uri = Uri.parse(paymentUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(
+
+      // Try different launch modes
+      bool launched = false;
+
+      // First try: External application
+      try {
+        launched = await launchUrl(
           uri,
           mode: LaunchMode.externalApplication,
         );
+      } catch (e) {
+        print('External application launch failed: $e');
+      }
 
-        // Start payment status checking
-        _startPaymentStatusCheck(orderId, transactionId);
+      // Second try: Platform default
+      if (!launched) {
+        try {
+          launched = await launchUrl(
+            uri,
+            mode: LaunchMode.platformDefault,
+          );
+        } catch (e) {
+          print('Platform default launch failed: $e');
+        }
+      }
+
+      // Third try: In-app web view
+      if (!launched) {
+        try {
+          launched = await launchUrl(
+            uri,
+            mode: LaunchMode.inAppWebView,
+          );
+        } catch (e) {
+          print('In-app web view launch failed: $e');
+        }
+      }
+
+      if (launched) {
+        print('URL launched successfully');
+        // Start payment status checking after launching payment
+        if (mounted) {
+          _startPaymentStatusCheck(orderId, transactionId);
+        }
       } else {
-        _showError('Cannot open payment page');
+        if (mounted) {
+          _showError(
+              'Cannot open payment page. Please check if you have a browser installed.');
+        }
       }
     } catch (e) {
-      _showError('Error opening payment page: $e');
+      print('URL launch error: $e');
+      if (mounted) {
+        _showError('Error opening payment page: $e');
+      }
     }
   }
 
   void _startPaymentStatusCheck(int orderId, String transactionId) {
+    if (!mounted) return;
+
     // Show payment tracking dialog
     _showPaymentTrackingDialog(orderId, transactionId);
   }
 
   void _showPaymentTrackingDialog(int orderId, String transactionId) {
+    if (!mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -203,21 +404,97 @@ class _CheckoutPageState extends State<CheckoutPage> {
         orderService: _orderService,
         onPaymentComplete: (bool success) {
           Navigator.of(context).pop();
-          if (success) {
-            _clearCartAndNavigate();
-          }
+          _handlePaymentCompletion(success);
         },
       ),
     );
   }
 
   Future<void> _clearCartAndNavigate() async {
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    await cartProvider.fetchCartItems();
+    if (!mounted) return;
 
-    if (mounted) {
-      context.go('/orders');
+    try {
+      // Only clear cart if payment was successful
+      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      await cartProvider.fetchCartItems();
+
+      if (mounted) {
+        // Navigate to orders page
+        context.go('/orders');
+      }
+    } catch (e) {
+      print('Error clearing cart: $e');
+      if (mounted) {
+        context.go('/home');
+      }
     }
+  }
+
+  // Handle payment completion (success or failure)
+  void _handlePaymentCompletion(bool success) {
+    if (!mounted) return;
+
+    if (success) {
+      // Payment successful - clear cart and navigate
+      _clearCartAndNavigate();
+    } else {
+      // Payment failed/cancelled - don't clear cart, show options
+      _showPaymentFailureOptions();
+    }
+  }
+
+  void _showPaymentFailureOptions() {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Payment Unsuccessful'),
+        content: const Text(
+            'Your payment could not be completed. Would you like to try again or switch to Cash on Delivery?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Don't navigate away - let user try again
+            },
+            child: const Text('Try Again'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              // Switch to COD and complete order
+              setState(() {
+                _paymentMethod = 'COD';
+              });
+              await _processCODOrder({
+                'full_name': _nameController.text.trim(),
+                'phone': _phoneController.text.trim(),
+                'email': _emailController.text.trim(),
+                'street': _streetController.text.trim(),
+                'area': _areaController.text.trim(),
+                'landmark': _landmarkController.text.trim(),
+                'city': _cityController.text.trim(),
+                'state': _stateController.text.trim(),
+                'country': 'India',
+                'pincode': _pincodeController.text.trim(),
+                'use_for_billing': true,
+              });
+            },
+            child: const Text('Switch to COD'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.go('/home');
+            },
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showError(String message) {

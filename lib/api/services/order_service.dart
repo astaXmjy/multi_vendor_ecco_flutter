@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class OrderService {
-  final String baseUrl = 'http://3.6.174.34:8000/api/v1/orders';
+  final String baseUrl = 'https://anugami.com//api/v1/orders';
 
   // Checkout - Create orders from cart items
   Future<Map<String, dynamic>> checkout({
@@ -67,6 +67,8 @@ class OrderService {
       }
 
       if (response.statusCode == 201 || response.statusCode == 200) {
+        // Handle the nested response structure from your Django backend
+        // The actual response has: {success: true, message: "...", orders: [...], shipments: [...]}
         return {
           'success': true,
           'data': responseData,
@@ -74,7 +76,9 @@ class OrderService {
       } else {
         return {
           'success': false,
-          'message': responseData['error'] ?? 'Checkout failed',
+          'message': responseData['error'] ??
+              responseData['message'] ??
+              'Checkout failed',
           'errors': responseData,
           'status_code': response.statusCode,
         };
@@ -242,7 +246,6 @@ class OrderService {
           'message': 'Not authenticated',
         };
       }
-      print(orderId);
 
       final response = await http.get(
         Uri.parse('$baseUrl/orders/$orderId/track/'),
@@ -278,6 +281,7 @@ class OrderService {
     }
   }
 
+  // Get saved auth token
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token');

@@ -1,9 +1,110 @@
+// lib/presentation/widgets/order_tracking_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../api/services/order_service.dart';
 import '../../core/models/order_model.dart';
-import '../../core/models/tracking_model.dart';
+
+// Simplified tracking models - no external dependencies
+class SimpleTrackingModel {
+  final String orderNumber;
+  final String status;
+  final SimpleShippingDetails? shippingDetails;
+  final List<SimpleTrackingUpdate> statusHistory;
+
+  SimpleTrackingModel({
+    required this.orderNumber,
+    required this.status,
+    this.shippingDetails,
+    required this.statusHistory,
+  });
+
+  factory SimpleTrackingModel.fromJson(Map<String, dynamic> json) {
+    return SimpleTrackingModel(
+      orderNumber: json['order_number'] ?? '',
+      status: json['status'] ?? '',
+      shippingDetails: json['shipping_details'] != null
+          ? SimpleShippingDetails.fromJson(json['shipping_details'])
+          : null,
+      statusHistory:
+          (json['shipping_details']?['status_history'] as List<dynamic>?)
+                  ?.map((update) => SimpleTrackingUpdate.fromJson(update))
+                  .toList() ??
+              [],
+    );
+  }
+}
+
+class SimpleTrackingUpdate {
+  final String status;
+  final DateTime date;
+  final String? location;
+  final String? activity;
+
+  SimpleTrackingUpdate({
+    required this.status,
+    required this.date,
+    this.location,
+    this.activity,
+  });
+
+  factory SimpleTrackingUpdate.fromJson(Map<String, dynamic> json) {
+    DateTime parsedDate;
+    try {
+      parsedDate = DateTime.parse(json['date']);
+    } catch (e) {
+      parsedDate = DateTime.now();
+    }
+
+    return SimpleTrackingUpdate(
+      status: json['status'] ?? '',
+      date: parsedDate,
+      location: json['location'],
+      activity: json['activity'],
+    );
+  }
+}
+
+class SimpleShippingDetails {
+  final String provider;
+  final String? trackingId;
+  final String? awbCode;
+  final String? courierName;
+  final String? trackingUrl;
+  final String status;
+  final DateTime? pickupDate;
+
+  SimpleShippingDetails({
+    required this.provider,
+    this.trackingId,
+    this.awbCode,
+    this.courierName,
+    this.trackingUrl,
+    required this.status,
+    this.pickupDate,
+  });
+
+  factory SimpleShippingDetails.fromJson(Map<String, dynamic> json) {
+    DateTime? parsedPickupDate;
+    if (json['pickup_date'] != null) {
+      try {
+        parsedPickupDate = DateTime.parse(json['pickup_date']);
+      } catch (e) {
+        parsedPickupDate = null;
+      }
+    }
+
+    return SimpleShippingDetails(
+      provider: json['provider'] ?? 'Unknown',
+      trackingId: json['tracking_id'],
+      awbCode: json['awb_code'] ?? json['awb_number'],
+      courierName: json['courier'] ?? json['courier_name'],
+      trackingUrl: json['tracking_url'],
+      status: json['status'] ?? '',
+      pickupDate: parsedPickupDate,
+    );
+  }
+}
 
 class OrderTrackingDialog extends StatefulWidget {
   final OrderModel order;
@@ -21,7 +122,7 @@ class OrderTrackingDialog extends StatefulWidget {
 
 class _OrderTrackingDialogState extends State<OrderTrackingDialog> {
   bool _isLoading = true;
-  TrackingModel? _trackingData;
+  SimpleTrackingModel? _trackingData;
   String? _error;
 
   @override
@@ -41,7 +142,7 @@ class _OrderTrackingDialogState extends State<OrderTrackingDialog> {
 
       if (result['success']) {
         setState(() {
-          _trackingData = TrackingModel.fromJson(result['data']);
+          _trackingData = SimpleTrackingModel.fromJson(result['data']);
         });
       } else {
         setState(() {
@@ -71,10 +172,7 @@ class _OrderTrackingDialogState extends State<OrderTrackingDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             _buildHeader(),
-
-            // Content
             Flexible(
               child: _isLoading
                   ? _buildLoadingView()
@@ -233,17 +331,12 @@ class _OrderTrackingDialogState extends State<OrderTrackingDialog> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Current Status
           _buildCurrentStatus(),
           const SizedBox(height: 24),
-
-          // Shipping Details
           if (_trackingData!.shippingDetails != null) ...[
             _buildShippingDetails(),
             const SizedBox(height: 24),
           ],
-
-          // Status History
           if (_trackingData!.statusHistory.isNotEmpty) ...[
             _buildStatusHistory(),
           ] else ...[
@@ -535,7 +628,7 @@ class _OrderTrackingDialogState extends State<OrderTrackingDialog> {
     );
   }
 
-  Widget _buildTimelineItem(TrackingUpdateModel update, bool isLast) {
+  Widget _buildTimelineItem(SimpleTrackingUpdate update, bool isLast) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

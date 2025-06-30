@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../api/services/order_service.dart';
@@ -40,11 +39,13 @@ class _PaymentTrackingDialogState extends State<PaymentTrackingDialog> {
     ).take(20); // Check for 1 minute maximum
 
     _statusCheckStream.listen((count) async {
-      if (_isComplete) return;
+      if (_isComplete || !mounted) return;
 
       try {
         final result =
             await widget.orderService.checkPaymentStatus(widget.orderId);
+
+        if (!mounted) return;
 
         if (result['success']) {
           final paymentStatus = result['data']['payment_status'];
@@ -69,10 +70,14 @@ class _PaymentTrackingDialogState extends State<PaymentTrackingDialog> {
 
           if (_isComplete) {
             await Future.delayed(const Duration(seconds: 2));
-            widget.onPaymentComplete(_isSuccess);
+            if (mounted) {
+              widget.onPaymentComplete(_isSuccess);
+            }
           }
         }
       } catch (e) {
+        if (!mounted) return;
+
         if (count > 15) {
           // After 45 seconds
           setState(() {
@@ -80,7 +85,9 @@ class _PaymentTrackingDialogState extends State<PaymentTrackingDialog> {
             _isComplete = true;
           });
           await Future.delayed(const Duration(seconds: 2));
-          widget.onPaymentComplete(false);
+          if (mounted) {
+            widget.onPaymentComplete(false);
+          }
         }
       }
     });
