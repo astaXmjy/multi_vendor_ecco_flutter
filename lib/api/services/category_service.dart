@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../core/models/category_model.dart';
 
 class CategoryService {
-  final String baseUrl = 'http://3.6.174.34:8000/api/v1/categories';
+  final String baseUrl = 'https://anugami.com/api/v1/categories';
   // Fetch flat list of categories
   Future<List<CategoryModel>> getCategories() async {
     try {
@@ -97,7 +97,7 @@ class CategoryService {
     try {
       final response = await http.get(
         Uri.parse(
-            'http://3.6.174.34:8000/api/v1/products/by-category-tree/?slug=$slug'),
+            'https://anugami.com/api/v1/products/by-category-tree/?slug=$slug'),
       );
 
       if (response.statusCode == 200) {

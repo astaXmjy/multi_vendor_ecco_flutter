@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/models/review_model.dart';
 
 class ReviewService {
-  final String baseUrl = 'http://3.6.174.34:8000/api/v1';
+  final String baseUrl = 'https://anugami.com/api/v1';
 
   // Get product reviews
   Future<Map<String, dynamic>> getProductReviews(String productSlug) async {

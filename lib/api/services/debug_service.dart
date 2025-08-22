@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DebugService {
-  final String baseUrl = 'http://3.6.174.34:8000/api/v1/orders';
+  final String baseUrl = 'https://anugami.com/api/v1/orders';
 
   // Test authentication and user info
   Future<Map<String, dynamic>> testAuth() async {

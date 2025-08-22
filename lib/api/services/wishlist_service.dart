@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/models/wishlist_item_model.dart';
 
 class WishlistService {
-  final String baseUrl = 'http://3.6.174.34:8000/api/v1';
+  final String baseUrl = 'https://anugami.com/api/v1';
 
   // Add item to wishlist
   Future<Map<String, dynamic>> addToWishlist({

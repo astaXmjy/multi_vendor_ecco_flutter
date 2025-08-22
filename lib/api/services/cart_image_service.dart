@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../../core/models/product_model.dart';
 
 class CartImageService {
-  final String baseUrl = 'http://3.6.174.34:8000/api/v1';
+  final String baseUrl = 'https://anugami.com/api/v1';
 
   // Cache for storing image URLs to avoid repeated API calls
   static final Map<String, String> _imageCache = {};

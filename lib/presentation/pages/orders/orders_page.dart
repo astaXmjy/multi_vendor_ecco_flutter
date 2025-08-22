@@ -1,3 +1,4 @@
+// lib/presentation/pages/orders/orders_page.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../api/services/order_service.dart';
@@ -54,6 +55,9 @@ class _OrdersPageState extends State<OrdersPage> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -79,33 +83,41 @@ class _OrdersPageState extends State<OrdersPage> {
     }
   }
 
-  String _getPaymentStatusText(PaymentDetailsModel? payment) {
+  String _getPaymentStatusText(PaymentDetails? payment) {
     if (payment == null) return 'N/A';
 
-    switch (payment.paymentStatus.toLowerCase()) {
-      case 'paid':
-        return 'Paid';
-      case 'pending':
-        return 'Pending';
-      case 'failed':
-        return 'Failed';
-      default:
-        return payment.paymentStatus;
-    }
+    // Use the helper method from PaymentDetails model
+    return payment.displayStatus;
   }
 
-  Color _getPaymentStatusColor(PaymentDetailsModel? payment) {
+  Color _getPaymentStatusColor(PaymentDetails? payment) {
     if (payment == null) return Colors.grey;
 
-    switch (payment.paymentStatus.toLowerCase()) {
-      case 'paid':
-        return Colors.green;
-      case 'pending':
-        return Colors.orange;
-      case 'failed':
-        return Colors.red;
+    // Use helper methods from PaymentDetails model
+    if (payment.isPaid) return Colors.green;
+    if (payment.isPending) return Colors.orange;
+    if (payment.isFailed) return Colors.red;
+    if (payment.isRefunded) return Colors.blue;
+
+    return Colors.grey;
+  }
+
+  String _getPaymentMethodText(PaymentDetails? payment) {
+    if (payment == null) return 'N/A';
+
+    switch (payment.method.toUpperCase()) {
+      case 'COD':
+        return 'Cash on Delivery';
+      case 'RAZORPAY-UPI':
+        return 'UPI';
+      case 'RAZORPAY-CARD':
+        return 'Card';
+      case 'RAZORPAY-WALLET':
+        return 'Wallet';
+      case 'RAZORPAY-NETBANKING':
+        return 'Net Banking';
       default:
-        return Colors.grey;
+        return payment.method;
     }
   }
 
@@ -114,23 +126,34 @@ class _OrdersPageState extends State<OrdersPage> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('My Orders'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 1,
+        title: const Text(
+          'My Orders',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: const Color(0xFFFF7A2E),
+        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _fetchOrders,
+            tooltip: 'Refresh Orders',
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF7A2E)),
+              ),
+            )
           : _orders.isEmpty
               ? _buildEmptyState()
               : RefreshIndicator(
                   onRefresh: _fetchOrders,
+                  color: const Color(0xFFFF7A2E),
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: _orders.length,
@@ -170,6 +193,22 @@ class _OrdersPageState extends State<OrdersPage> {
               color: Colors.grey[500],
             ),
           ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              // Navigate to products or home page
+              Navigator.of(context).pushReplacementNamed('/');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF7A2E),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('Start Shopping'),
+          ),
         ],
       ),
     );
@@ -202,7 +241,8 @@ class _OrdersPageState extends State<OrdersPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        DateFormat('MMM dd, yyyy').format(order.createdAt),
+                        DateFormat('MMM dd, yyyy • hh:mm a')
+                            .format(order.createdAt),
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -237,28 +277,51 @@ class _OrdersPageState extends State<OrdersPage> {
             const SizedBox(height: 16),
 
             // Items
-            Text(
-              'Items (${order.items.length})',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
+            Row(
+              children: [
+                Icon(
+                  Icons.shopping_cart_outlined,
+                  size: 16,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Items (${order.items.length})',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             ...order.items.take(2).map((item) => Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Row(
                     children: [
-                      Text(
-                        '• ${item.name}',
-                        style: const TextStyle(fontSize: 13),
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFF7A2E),
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          item.name,
+                          style: const TextStyle(fontSize: 13),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       Text(
                         'Qty: ${item.quantity}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -266,7 +329,7 @@ class _OrdersPageState extends State<OrdersPage> {
                 )),
             if (order.items.length > 2)
               Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: 4, left: 12),
                 child: Text(
                   '... and ${order.items.length - 2} more items',
                   style: TextStyle(
@@ -279,40 +342,64 @@ class _OrdersPageState extends State<OrdersPage> {
 
             const SizedBox(height: 16),
 
-            // Payment and Total
+            // Payment and shipping info row
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Payment',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
+                // Payment info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.payment,
+                            size: 16,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Payment',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getPaymentStatusColor(order.payment)
-                            .withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        _getPaymentStatusText(order.payment),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: _getPaymentStatusColor(order.payment),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _getPaymentStatusColor(order.payment)
+                              .withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          _getPaymentStatusText(order.payment),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: _getPaymentStatusColor(order.payment),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                      if (order.payment != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          _getPaymentMethodText(order.payment),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
+
+                // Total amount
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -351,25 +438,53 @@ class _OrdersPageState extends State<OrdersPage> {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      order.shipping!.trackingId != null
-                          ? 'Tracking: ${order.shipping!.trackingId}'
-                          : 'Shipping via ${order.shipping!.provider}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          order.shipping!.displayStatus,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (order.shipping!.awbNumber != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'AWB: ${order.shipping!.awbNumber}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                        if (order.shipping!.courierName != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'via ${order.shipping!.courierName}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   // Track Order Button
-                  if (order.shipping!.trackingId != null)
+                  if (order.shipping!.hasTrackingInfo)
                     TextButton(
                       onPressed: () => _showTrackingDialog(order),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                            horizontal: 12, vertical: 6),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        backgroundColor:
+                            const Color(0xFFFF7A2E).withOpacity(0.1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       child: const Text(
                         'Track',
@@ -383,9 +498,75 @@ class _OrdersPageState extends State<OrdersPage> {
                 ],
               ),
             ],
+
+            // Action buttons for certain statuses
+            if (_shouldShowActionButtons(order)) ...[
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 8),
+              _buildActionButtons(order),
+            ],
           ],
         ),
       ),
+    );
+  }
+
+  bool _shouldShowActionButtons(OrderModel order) {
+    final status = order.status.toLowerCase();
+    return status == 'pending' ||
+        status == 'confirmed' ||
+        (order.payment != null && order.payment!.isPending);
+  }
+
+  Widget _buildActionButtons(OrderModel order) {
+    return Row(
+      children: [
+        // Cancel order button (if applicable)
+        if (order.status.toLowerCase() == 'pending' ||
+            order.status.toLowerCase() == 'confirmed')
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => _showCancelOrderDialog(order),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: const BorderSide(color: Colors.red),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Cancel Order',
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
+          ),
+
+        if (order.status.toLowerCase() == 'pending' ||
+            order.status.toLowerCase() == 'confirmed')
+          const SizedBox(width: 12),
+
+        // Pay now button (if payment is pending)
+        if (order.payment != null &&
+            order.payment!.isPending &&
+            !order.payment!.isCOD)
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () => _initiatePayment(order),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF7A2E),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Pay Now',
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -398,5 +579,61 @@ class _OrdersPageState extends State<OrdersPage> {
         orderService: _orderService,
       ),
     );
+  }
+
+  // Show cancel order confirmation
+  void _showCancelOrderDialog(OrderModel order) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Order'),
+        content: Text(
+            'Are you sure you want to cancel order #${order.orderNumber}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('No'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _cancelOrder(order);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Yes, Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Cancel order
+  Future<void> _cancelOrder(OrderModel order) async {
+    try {
+      // Implement cancel order API call here
+      _showError('Order cancellation feature will be implemented soon');
+    } catch (e) {
+      _showError('Failed to cancel order: $e');
+    }
+  }
+
+  // Initiate payment for pending orders
+  Future<void> _initiatePayment(OrderModel order) async {
+    try {
+      final result = await _orderService.initiatePayment(orderId: order.id);
+
+      if (result['success']) {
+        // Handle payment initiation
+        _showError(
+            'Payment feature will be implemented with Razorpay integration');
+      } else {
+        _showError(result['message'] ?? 'Failed to initiate payment');
+      }
+    } catch (e) {
+      _showError('Payment error: $e');
+    }
   }
 }

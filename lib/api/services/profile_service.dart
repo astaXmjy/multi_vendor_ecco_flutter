@@ -8,7 +8,7 @@ import 'package:path/path.dart' as path;
 import '../../core/models/profile_model.dart';
 
 class ProfileService {
-  final String baseUrl = 'http://3.6.174.34:8000/api/v1';
+  final String baseUrl = 'https://anugami.com/api/v1';
 
   // Get user profile
 // In your ProfileService class

@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/models/cart_item_model.dart';
 
 class CartService {
-  final String baseUrl = 'http://3.6.174.34:8000/api/v1';
+  final String baseUrl = 'https://anugami.com/api/v1';
 
   // Get cart items
   Future<Map<String, dynamic>> getCartItems() async {
