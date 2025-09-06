@@ -268,7 +268,7 @@ class OrderService {
       }
 
       final response = await http.get(
-        Uri.parse('$baseUrl/my_orders/'),
+        Uri.parse('$baseUrl/orders/my_orders/'),
         headers: {
           'Authorization': 'Token $token',
           'Content-Type': 'application/json',

@@ -8,6 +8,7 @@ import '../presentation/pages/auth/login_page.dart';
 import '../presentation/pages/auth/create_account_page.dart';
 import '../presentation/pages/auth/address_form_page.dart';
 import '../presentation/pages/home/home_page.dart';
+import '../presentation/pages/search/search_page.dart';
 import '../presentation/pages/wishlist/wishlist_page.dart';
 import '../presentation/pages/profile/profile_page.dart';
 import '../presentation/pages/profile/my_addresses_page.dart';
@@ -195,11 +196,7 @@ class AppRoutes {
           name: 'search',
           builder: (context, state) {
             final query = state.uri.queryParameters['q'] ?? '';
-            return ProductsPage(
-              type: 'search',
-              title: 'Search Results',
-              // You might want to add search functionality to ProductsPage
-            );
+            return SearchPage(initialQuery: query);
           },
         ),
         // Review Routes

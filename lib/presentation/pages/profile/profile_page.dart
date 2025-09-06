@@ -92,7 +92,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       appBar: const CustomAppBar(
         title: 'My Profile',
-        showBackButton: false,
+        showBackButton: true,
       ),
       body: RefreshIndicator(
         onRefresh: _loadProfile,

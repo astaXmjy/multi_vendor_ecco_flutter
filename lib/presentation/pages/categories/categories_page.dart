@@ -56,7 +56,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
     return Scaffold(
       appBar: const CustomAppBar(
         title: 'Categories',
-        showBackButton: false,
+        showBackButton: true,
       ),
       body: RefreshIndicator(
         onRefresh: _loadCategories,

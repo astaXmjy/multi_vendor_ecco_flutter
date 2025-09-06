@@ -27,7 +27,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _initializeData();
 
-    // Add this line to load cart
+// Add this line to load cart
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -39,7 +39,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _initializeData() async {
-    // Initialize both products and wishlist
+// Initialize both products and wishlist
     await Future.wait([
       _loadProducts(),
       _initializeWishlist(),
@@ -50,7 +50,7 @@ class _HomePageState extends State<HomePage> {
     final productProvider =
         Provider.of<ProductProvider>(context, listen: false);
 
-    // Load all three types of products concurrently
+// Load all three types of products concurrently
     await Future.wait([
       productProvider.loadFeaturedProducts(),
       productProvider.loadNewArrivals(),
@@ -64,23 +64,23 @@ class _HomePageState extends State<HomePage> {
           Provider.of<WishlistProvider>(context, listen: false);
       await wishlistProvider.initialize();
     } catch (e) {
-      // Silently handle wishlist initialization errors
-      // User can still use the app without wishlist functionality
+// Silently handle wishlist initialization errors
+// User can still use the app without wishlist functionality
       print('Failed to initialize wishlist: $e');
     }
   }
 
   void _navigateToProductDetails(ProductModel product) {
-    // Navigate to product details page
+// Navigate to product details page
     context.push('/product/${product.slug}');
   }
 
   void _navigateToAllProducts(String title, String type) {
-    // Navigate to all products page with type (featured, new_arrivals, best_sellers)
+// Navigate to all products page with type (featured, new_arrivals, best_sellers)
     context.push('/products?type=$type&title=$title');
   }
 
-  // Updated wishlist handler with API integration
+// Updated wishlist handler with API integration
   void _handleWishlistTap(ProductModel product) async {
     final productProvider =
         Provider.of<ProductProvider>(context, listen: false);
@@ -88,7 +88,7 @@ class _HomePageState extends State<HomePage> {
     try {
       await productProvider.toggleWishlist(product, context);
     } catch (e) {
-      // Error handling is done in the ProductProvider
+// Error handling is done in the ProductProvider
       print('Wishlist toggle failed: $e');
     }
   }
@@ -107,17 +107,17 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Banner slider
+// Banner slider
                   const BannerSlider(),
 
                   const SizedBox(height: 16),
 
-                  // Categories section
+// Categories section
                   const CategoriesSection(),
 
                   const SizedBox(height: 16),
 
-                  // Featured products with API wishlist integration
+// Featured products with API wishlist integration
                   ProductsSection(
                     title: 'Featured Products',
                     products: productProvider.featuredProducts,
@@ -132,7 +132,7 @@ class _HomePageState extends State<HomePage> {
 
                   const SizedBox(height: 16),
 
-                  // New arrivals with API wishlist integration
+// New arrivals with API wishlist integration
                   ProductsSection(
                     title: 'New Arrivals',
                     products: productProvider.newArrivals,
@@ -147,7 +147,7 @@ class _HomePageState extends State<HomePage> {
 
                   const SizedBox(height: 16),
 
-                  // Best sellers with API wishlist integration
+// Best sellers with API wishlist integration
                   ProductsSection(
                     title: 'Best Sellers',
                     products: productProvider.bestSellers,

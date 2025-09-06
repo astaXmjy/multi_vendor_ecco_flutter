@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart'; // Add this dependency to pubspec.yaml
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../../providers/cart_provider.dart';
+import '../../../providers/address_provider.dart';
 import '../../../api/services/order_service.dart';
 import '../../../core/models/order_model.dart';
+import '../../../core/models/address_model.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({Key? key}) : super(key: key);
@@ -24,6 +26,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   bool _isLoading = false;
   bool _processingPayment = false;
+  bool _useExistingAddress = false;
+  AddressModel? _selectedAddress;
 
   // Form controllers
   final TextEditingController _nameController = TextEditingController();
@@ -38,12 +42,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   String _paymentMethod = 'COD';
   List<Map<String, dynamic>>? _createdOrders;
-  int? _currentOrderId; // Store current order ID for payment verification
+  int? _currentOrderId;
 
   @override
   void initState() {
     super.initState();
     _initializeRazorpay();
+    _loadAddresses();
   }
 
   void _initializeRazorpay() {
@@ -51,6 +56,33 @@ class _CheckoutPageState extends State<CheckoutPage> {
     _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
     _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
     _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+  }
+
+  void _loadAddresses() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final addressProvider =
+          Provider.of<AddressProvider>(context, listen: false);
+      addressProvider.loadAddresses().then((_) {
+        if (addressProvider.defaultAddress != null) {
+          setState(() {
+            _selectedAddress = addressProvider.defaultAddress;
+            _useExistingAddress = true;
+          });
+          _populateFormFromAddress(addressProvider.defaultAddress!);
+        }
+      });
+    });
+  }
+
+  void _populateFormFromAddress(AddressModel address) {
+    _nameController.text = address.fullName;
+    _phoneController.text = address.phone;
+    _streetController.text = address.street;
+    _cityController.text = address.city;
+    _stateController.text = address.state;
+    _pincodeController.text = address.pincode;
+    // For other fields like area, landmark, email - you may need to parse them from street address
+    // or have them as separate fields in your AddressModel
   }
 
   @override
@@ -64,7 +96,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     _cityController.dispose();
     _stateController.dispose();
     _pincodeController.dispose();
-    _razorpay.clear(); // Clear Razorpay listeners
+    _razorpay.clear();
     super.dispose();
   }
 
@@ -81,7 +113,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
     });
 
     try {
-      // Verify payment with backend
       final verificationResult = await _orderService.verifyPayment(
         orderId: _currentOrderId!,
         razorpayOrderId: response.orderId ?? '',
@@ -92,7 +123,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (!mounted) return;
 
       if (verificationResult['success']) {
-        // Payment verified successfully
         _showSuccessDialog(
           'Payment successful! Your order has been confirmed.\n\nPayment ID: ${response.paymentId}',
         );
@@ -121,7 +151,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
       _processingPayment = false;
     });
 
-    // Handle different error scenarios
     String errorMessage = 'Payment failed';
 
     if (response.code == Razorpay.PAYMENT_CANCELLED) {
@@ -178,11 +207,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
       print('Checkout payload: $shippingAddress');
       print('Payment method: $_paymentMethod');
 
-      // For COD orders, proceed with checkout immediately
       if (_paymentMethod == 'COD') {
         await _processCODOrder(shippingAddress);
       } else {
-        // For online payments, first create order then initiate payment
         await _processOnlinePaymentOrder(shippingAddress);
       }
     } catch (e) {
@@ -200,7 +227,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Future<void> _processCODOrder(Map<String, dynamic> shippingAddress) async {
-    // For COD, complete the checkout process with auto shipment creation
     final checkoutResult = await _orderService.checkout(
       shippingAddress: shippingAddress,
       paymentMethod: _paymentMethod,
@@ -217,7 +243,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
       List<dynamic> ordersData = data['orders'] ?? [];
 
       if (ordersData.isNotEmpty) {
-        // Store raw order data
         final orders = ordersData.cast<Map<String, dynamic>>();
 
         if (mounted) {
@@ -225,7 +250,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
             _createdOrders = orders;
           });
 
-          // Check shipment results
           String successMessage =
               'Order placed successfully! You can pay cash on delivery.';
 
@@ -269,13 +293,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
     });
 
     try {
-      // First create the order without clearing cart
       final checkoutResult = await _orderService.checkout(
         shippingAddress: shippingAddress,
         paymentMethod: _paymentMethod,
-        clearCart: false, // Don't clear cart yet - wait for payment success
-        autoCreateShipments:
-            false, // Don't create shipments until payment is confirmed
+        clearCart: false,
+        autoCreateShipments: false,
       );
 
       if (!mounted) return;
@@ -288,7 +310,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
           final orders = ordersData.cast<Map<String, dynamic>>();
           final firstOrder = orders.first;
 
-          // Extract order ID safely
           final orderId = _extractOrderId(firstOrder);
           if (orderId == null) {
             _showError('Invalid order data received');
@@ -300,7 +321,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
             _currentOrderId = orderId;
           });
 
-          // Now initiate payment
           await _initiateRazorpayPayment(orderId);
         } else {
           _showError('Failed to create order');
@@ -321,7 +341,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
   }
 
-  // Helper method to safely extract order ID
   int? _extractOrderId(Map<String, dynamic> orderData) {
     try {
       if (orderData['order_id'] != null) {
@@ -345,17 +364,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
     });
 
     try {
-      // Initiate Razorpay payment
-      final paymentResult = await _orderService.initiatePayment(
-        orderId: orderId,
-      );
+      final paymentResult =
+          await _orderService.initiatePayment(orderId: orderId);
 
       if (!mounted) return;
 
       if (paymentResult['success']) {
         final paymentData = paymentResult['data'];
-
-        // Launch Razorpay payment
         await _launchRazorpayPayment(paymentData);
       } else {
         setState(() {
@@ -375,7 +390,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Future<void> _launchRazorpayPayment(Map<String, dynamic> paymentData) async {
     try {
-      final amount = paymentData['amount']; // Amount in paise
+      final amount = paymentData['amount'];
       final currency = paymentData['currency'] ?? 'INR';
       final razorpayOrderId = paymentData['order_id'];
       final keyId = paymentData['key_id'];
@@ -396,7 +411,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
         'notes': {
           'order_id': _currentOrderId.toString(),
         },
-        // Remove the modal callback - it's not supported
       };
 
       print('Launching Razorpay with options: $options');
@@ -413,30 +427,25 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Future<void> _clearCartAndNavigate() async {
     try {
-      // Clear the cart first
       if (mounted) {
         final cartProvider = Provider.of<CartProvider>(context, listen: false);
         await cartProvider.clearCart();
         print('Cart cleared successfully');
       }
 
-      // Small delay to ensure cart clearing completes
       await Future.delayed(const Duration(milliseconds: 100));
 
-      // Navigate to orders page
       if (mounted) {
         print('Navigating to orders page');
         context.go('/orders');
       }
     } catch (e) {
       print('Error clearing cart and navigating: $e');
-      // Still try to navigate even if cart clearing fails
       if (mounted) {
         try {
           context.go('/orders');
         } catch (navError) {
           print('Navigation error: $navError');
-          // Fallback: pop current page
           Navigator.of(context).pop();
         }
       }
@@ -444,13 +453,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   void _showError(String message) {
-    // Check if widget is still mounted and context is valid
     if (!mounted) {
       print('Widget not mounted, logging error: $message');
       return;
     }
 
-    // Use addPostFrameCallback to ensure widget tree is stable
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         print('Widget disposed before showing error: $message');
@@ -470,14 +477,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ),
         );
       } catch (e) {
-        // If SnackBar fails, just print the error
         print('Failed to show error SnackBar: $e');
         print('Original error: $message');
       }
     });
   }
 
-  // Show success dialog instead of SnackBar to avoid widget lifecycle issues
   void _showSuccessDialog(String message) {
     if (!mounted) return;
 
@@ -504,7 +509,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         actions: [
           ElevatedButton(
             onPressed: () async {
-              Navigator.of(context).pop(); // Close dialog
+              Navigator.of(context).pop();
               await _clearCartAndNavigate();
             },
             style: ElevatedButton.styleFrom(
@@ -546,16 +551,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
               children: [
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: MediaQuery.of(context).size.width * 0.04,
+                      vertical: 16,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildOrderSummary(),
                         const SizedBox(height: 16),
-                        _buildShippingAddressSection(),
+                        _buildAddressSelectionSection(),
                         const SizedBox(height: 16),
+                        if (!_useExistingAddress)
+                          _buildShippingAddressSection(),
+                        if (!_useExistingAddress) const SizedBox(height: 16),
                         _buildPaymentMethodSection(),
-                        const SizedBox(height: 100), // Space for bottom button
+                        const SizedBox(height: 100),
                       ],
                     ),
                   ),
@@ -603,7 +614,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.04),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -707,25 +718,245 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
+  Widget _buildAddressSelectionSection() {
+    return Consumer<AddressProvider>(
+      builder: (context, addressProvider, child) {
+        return Card(
+          elevation: 2,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.04),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on_outlined,
+                      color: Color(0xFFFF7A2E),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Delivery Address',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (addressProvider.addresses.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _useExistingAddress,
+                        onChanged: (value) {
+                          setState(() {
+                            _useExistingAddress = value ?? false;
+                            if (_useExistingAddress &&
+                                _selectedAddress != null) {
+                              _populateFormFromAddress(_selectedAddress!);
+                            } else {
+                              // Clear form
+                              _nameController.clear();
+                              _phoneController.clear();
+                              _streetController.clear();
+                              _areaController.clear();
+                              _landmarkController.clear();
+                              _cityController.clear();
+                              _stateController.clear();
+                              _pincodeController.clear();
+                              _emailController.clear();
+                            }
+                          });
+                        },
+                        activeColor: const Color(0xFFFF7A2E),
+                      ),
+                      const Expanded(
+                        child: Text(
+                          'Use saved address',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_useExistingAddress) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        children: addressProvider.addresses.map((address) {
+                          return RadioListTile<AddressModel>(
+                            title: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      address.fullName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    if (address.isDefault) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFF7A2E),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: const Text(
+                                          'DEFAULT',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                Text(
+                                  address.phone,
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                '${address.street}, ${address.city}, ${address.state} - ${address.pincode}',
+                                style: const TextStyle(fontSize: 12),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            value: address,
+                            groupValue: _selectedAddress,
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedAddress = value;
+                                if (value != null) {
+                                  _populateFormFromAddress(value);
+                                }
+                              });
+                            },
+                            activeColor: const Color(0xFFFF7A2E),
+                            dense: true,
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: !_useExistingAddress,
+                        onChanged: (value) {
+                          setState(() {
+                            _useExistingAddress = !(value ?? false);
+                            if (!_useExistingAddress) {
+                              _selectedAddress = null;
+                              // Clear form
+                              _nameController.clear();
+                              _phoneController.clear();
+                              _streetController.clear();
+                              _areaController.clear();
+                              _landmarkController.clear();
+                              _cityController.clear();
+                              _stateController.clear();
+                              _pincodeController.clear();
+                              _emailController.clear();
+                            }
+                          });
+                        },
+                        activeColor: const Color(0xFFFF7A2E),
+                      ),
+                      const Expanded(
+                        child: Text(
+                          'Use a new address',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                            color: Colors.blue[600], size: 20),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'No saved addresses found. Please enter a new address below.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildShippingAddressSection() {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.04),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 const Icon(
-                  Icons.location_on_outlined,
+                  Icons.edit_location_outlined,
                   color: Color(0xFFFF7A2E),
                   size: 20,
                 ),
                 const SizedBox(width: 8),
                 const Text(
-                  'Shipping Address',
+                  'Enter New Address',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -856,6 +1087,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             Row(
               children: [
                 Expanded(
+                  flex: 2,
                   child: TextFormField(
                     controller: _cityController,
                     decoration: const InputDecoration(
@@ -874,6 +1106,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
+                  flex: 2,
                   child: TextFormField(
                     controller: _stateController,
                     decoration: const InputDecoration(
@@ -892,10 +1125,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
+                  flex: 1,
                   child: TextFormField(
                     controller: _pincodeController,
                     decoration: const InputDecoration(
-                      labelText: 'Pincode *',
+                      labelText: 'Pin *',
                       border: OutlineInputBorder(),
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -926,7 +1160,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.04),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -960,10 +1194,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       children: [
                         Icon(Icons.money, color: Colors.green[600]),
                         const SizedBox(width: 8),
-                        const Text('Cash on Delivery (COD)'),
+                        const Flexible(
+                          child: Text(
+                            'Cash on Delivery (COD)',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ),
                       ],
                     ),
-                    subtitle: const Text('Pay when your order is delivered'),
+                    subtitle: const Text(
+                      'Pay when your order is delivered',
+                      style: TextStyle(fontSize: 12),
+                    ),
                     value: 'COD',
                     groupValue: _paymentMethod,
                     onChanged: (value) {
@@ -972,6 +1214,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       });
                     },
                     activeColor: const Color(0xFFFF7A2E),
+                    dense: true,
                   ),
                   const Divider(height: 1),
                   RadioListTile<String>(
@@ -987,10 +1230,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text('Pay Online'),
+                        const Flexible(
+                          child: Text(
+                            'Pay Online',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ),
                       ],
                     ),
-                    subtitle: const Text('UPI, Cards, Net Banking, Wallets'),
+                    subtitle: const Text(
+                      'UPI, Cards, Net Banking, Wallets',
+                      style: TextStyle(fontSize: 12),
+                    ),
                     value: 'Razorpay-UPI',
                     groupValue: _paymentMethod,
                     onChanged: (value) {
@@ -999,6 +1250,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       });
                     },
                     activeColor: const Color(0xFFFF7A2E),
+                    dense: true,
                   ),
                 ],
               ),
@@ -1039,7 +1291,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Consumer<CartProvider>(
       builder: (context, cartProvider, child) {
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.04),
           decoration: BoxDecoration(
             color: Colors.white,
             boxShadow: [
@@ -1051,104 +1303,113 @@ class _CheckoutPageState extends State<CheckoutPage> {
               ),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Total Amount:',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total Amount:',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
+                    Text(
+                      '₹${cartProvider.finalTotal.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFFF7A2E),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed:
+                        _isLoading || _processingPayment ? null : _checkout,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF7A2E),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 2,
+                      disabledBackgroundColor: Colors.grey[400],
+                    ),
+                    child: _isLoading || _processingPayment
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Flexible(
+                                child: Text(
+                                  _processingPayment
+                                      ? 'Processing Payment...'
+                                      : 'Creating Order...',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                _paymentMethod == 'COD'
+                                    ? Icons.shopping_bag
+                                    : Icons.payment,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  _paymentMethod == 'COD'
+                                      ? 'Place Order'
+                                      : 'Proceed to Payment',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                   ),
-                  Text(
-                    '₹${cartProvider.finalTotal.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFFF7A2E),
+                ),
+                if (_paymentMethod != 'COD') ...[
+                  const SizedBox(height: 8),
+                  const Text(
+                    'You will be redirected to secure payment gateway',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey,
                     ),
+                    textAlign: TextAlign.center,
                   ),
                 ],
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed:
-                      _isLoading || _processingPayment ? null : _checkout,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF7A2E),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    elevation: 2,
-                  ),
-                  child: _isLoading || _processingPayment
-                      ? Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              _processingPayment
-                                  ? 'Processing Payment...'
-                                  : 'Creating Order...',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              _paymentMethod == 'COD'
-                                  ? Icons.shopping_bag
-                                  : Icons.payment,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _paymentMethod == 'COD'
-                                  ? 'Place Order'
-                                  : 'Proceed to Payment',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-              ),
-              if (_paymentMethod != 'COD') ...[
-                const SizedBox(height: 8),
-                const Text(
-                  'You will be redirected to secure payment gateway',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
               ],
-            ],
+            ),
           ),
         );
       },

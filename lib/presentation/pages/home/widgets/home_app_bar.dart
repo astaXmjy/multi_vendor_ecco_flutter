@@ -1,5 +1,6 @@
 // lib/presentation/pages/home/widgets/home_app_bar.dart
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../providers/user_provider.dart';
 
@@ -29,7 +30,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           // Show user name and ID if logged in
           if (isLoggedIn && fullName != 'Guest User')
             Text(
-              '$fullName${userId.isNotEmpty ? ' #$userId' : ''}',
+              fullName,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 12,
@@ -47,6 +48,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(Icons.search, color: Colors.white),
           onPressed: () {
             // Navigate to search page
+            context.push('/search');
           },
         ),
       ],

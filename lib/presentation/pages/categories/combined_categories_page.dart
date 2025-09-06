@@ -59,7 +59,7 @@ class _CombinedCategoriesPageState extends State<CombinedCategoriesPage> {
     return Scaffold(
       appBar: CustomAppBar(
         title: 'Categories',
-        showBackButton: false,
+        showBackButton: true,
         actions: [
           // View toggle button
           IconButton(
