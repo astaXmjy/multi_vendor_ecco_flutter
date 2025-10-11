@@ -42,7 +42,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   String _paymentMethod = 'COD';
   List<Map<String, dynamic>>? _createdOrders;
-  int? _currentOrderId;
 
   @override
   void initState() {
@@ -100,7 +99,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     super.dispose();
   }
 
-  // Razorpay Event Handlers
+  // Razorpay Event Handlers - Updated for bulk payment verification
   void _handlePaymentSuccess(PaymentSuccessResponse response) async {
     print('Payment Success: ${response.paymentId}');
     print('Order ID: ${response.orderId}');
@@ -113,8 +112,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
     });
 
     try {
+      // Updated verification call - no longer needs order ID
       final verificationResult = await _orderService.verifyPayment(
-        orderId: _currentOrderId!,
         razorpayOrderId: response.orderId ?? '',
         razorpayPaymentId: response.paymentId ?? '',
         razorpaySignature: response.signature ?? '',
@@ -123,8 +122,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (!mounted) return;
 
       if (verificationResult['success']) {
+        final data = verificationResult['data'];
+        final orders = data['orders'] ?? [];
+        final totalOrders = data['total_orders'] ?? 0;
+
         _showSuccessDialog(
-          'Payment successful! Your order has been confirmed.\n\nPayment ID: ${response.paymentId}',
+          'Payment successful! $totalOrders orders have been confirmed.\n\nPayment ID: ${response.paymentId}',
+          isBulkPayment: true,
+          orders: orders,
         );
       } else {
         _showError('Payment verification failed. Please contact support.');
@@ -207,10 +212,36 @@ class _CheckoutPageState extends State<CheckoutPage> {
       print('Checkout payload: $shippingAddress');
       print('Payment method: $_paymentMethod');
 
-      if (_paymentMethod == 'COD') {
-        await _processCODOrder(shippingAddress);
+      // Single checkout call that handles both order creation and payment initiation
+      final checkoutResult = await _orderService.checkout(
+        shippingAddress: shippingAddress,
+        paymentMethod: _paymentMethod,
+        clearCart: _paymentMethod == 'COD', // Clear cart immediately for COD
+        autoCreateShipments:
+            _paymentMethod == 'COD', // Auto-create shipments for COD
+        callbackUrl: 'https://anugami.com/payment/callback/',
+        redirectUrl: 'https://anugami.com/payment/success/',
+      );
+
+      print('Checkout result: $checkoutResult');
+
+      if (!mounted) return;
+
+      if (checkoutResult['success']) {
+        final data = checkoutResult['data'];
+
+        // Check if payment is required
+        if (data['payment_required'] == true) {
+          // Extract payment data and start Razorpay
+          final razorpayData = data['razorpay_data'];
+          await _startRazorpayPayment(razorpayData, data['orders']);
+        } else {
+          // COD order - show success immediately
+          final orders = data['orders'] ?? [];
+          _handleCODSuccess(data, orders);
+        }
       } else {
-        await _processOnlinePaymentOrder(shippingAddress);
+        _showError(checkoutResult['message'] ?? 'Checkout failed');
       }
     } catch (e) {
       print('Checkout exception: $e');
@@ -226,191 +257,33 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
   }
 
-  Future<void> _processCODOrder(Map<String, dynamic> shippingAddress) async {
-    final checkoutResult = await _orderService.checkout(
-      shippingAddress: shippingAddress,
-      paymentMethod: _paymentMethod,
-      clearCart: true,
-      autoCreateShipments: true,
-    );
-
-    print('COD Checkout result: $checkoutResult');
-
-    if (!mounted) return;
-
-    if (checkoutResult['success']) {
-      final data = checkoutResult['data'];
-      List<dynamic> ordersData = data['orders'] ?? [];
-
-      if (ordersData.isNotEmpty) {
-        final orders = ordersData.cast<Map<String, dynamic>>();
-
-        if (mounted) {
-          setState(() {
-            _createdOrders = orders;
-          });
-
-          String successMessage =
-              'Order placed successfully! You can pay cash on delivery.';
-
-          if (data['shipment_results'] != null) {
-            final shipmentResults = data['shipment_results'] as List<dynamic>;
-            final failedShipments =
-                shipmentResults.where((s) => s['success'] == false);
-            final successfulShipments =
-                shipmentResults.where((s) => s['success'] == true).length;
-
-            if (successfulShipments > 0) {
-              successMessage +=
-                  '\n\nShipping has been automatically set up for your orders.';
-            } else if (failedShipments.isNotEmpty) {
-              successMessage +=
-                  '\n\nNote: Shipping will be set up manually by the seller.';
-              print('Shipping setup failed: ${failedShipments.first['error']}');
-            }
-          }
-
-          _showSuccessDialog(successMessage);
-        }
-      } else {
-        if (mounted) {
-          _showError('No orders were created');
-        }
-      }
-    } else {
-      if (mounted) {
-        _showError(checkoutResult['message'] ?? 'Order creation failed');
-      }
-    }
-  }
-
-  Future<void> _processOnlinePaymentOrder(
-      Map<String, dynamic> shippingAddress) async {
+  Future<void> _startRazorpayPayment(
+    Map<String, dynamic> razorpayData,
+    List<dynamic> orders,
+  ) async {
     if (!mounted) return;
 
     setState(() {
       _processingPayment = true;
+      _createdOrders = orders.cast<Map<String, dynamic>>();
     });
 
     try {
-      final checkoutResult = await _orderService.checkout(
-        shippingAddress: shippingAddress,
-        paymentMethod: _paymentMethod,
-        clearCart: false,
-        autoCreateShipments: false,
-      );
-
-      if (!mounted) return;
-
-      if (checkoutResult['success']) {
-        final data = checkoutResult['data'];
-        List<dynamic> ordersData = data['orders'] ?? [];
-
-        if (ordersData.isNotEmpty) {
-          final orders = ordersData.cast<Map<String, dynamic>>();
-          final firstOrder = orders.first;
-
-          final orderId = _extractOrderId(firstOrder);
-          if (orderId == null) {
-            _showError('Invalid order data received');
-            return;
-          }
-
-          setState(() {
-            _createdOrders = orders;
-            _currentOrderId = orderId;
-          });
-
-          await _initiateRazorpayPayment(orderId);
-        } else {
-          _showError('Failed to create order');
-        }
-      } else {
-        _showError(checkoutResult['message'] ?? 'Order creation failed');
-      }
-    } catch (e) {
-      if (mounted) {
-        _showError('Error creating order: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _processingPayment = false;
-        });
-      }
-    }
-  }
-
-  int? _extractOrderId(Map<String, dynamic> orderData) {
-    try {
-      if (orderData['order_id'] != null) {
-        return int.parse(orderData['order_id'].toString());
-      }
-      if (orderData['id'] != null) {
-        return int.parse(orderData['id'].toString());
-      }
-      return null;
-    } catch (e) {
-      print('Error extracting order ID: $e');
-      return null;
-    }
-  }
-
-  Future<void> _initiateRazorpayPayment(int orderId) async {
-    if (!mounted) return;
-
-    setState(() {
-      _processingPayment = true;
-    });
-
-    try {
-      final paymentResult =
-          await _orderService.initiatePayment(orderId: orderId);
-
-      if (!mounted) return;
-
-      if (paymentResult['success']) {
-        final paymentData = paymentResult['data'];
-        await _launchRazorpayPayment(paymentData);
-      } else {
-        setState(() {
-          _processingPayment = false;
-        });
-        _showError(paymentResult['message'] ?? 'Payment initiation failed');
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _processingPayment = false;
-        });
-        _showError('Payment error: $e');
-      }
-    }
-  }
-
-  Future<void> _launchRazorpayPayment(Map<String, dynamic> paymentData) async {
-    try {
-      final amount = paymentData['amount'];
-      final currency = paymentData['currency'] ?? 'INR';
-      final razorpayOrderId = paymentData['order_id'];
-      final keyId = paymentData['key_id'];
-
       var options = {
-        'key': keyId,
-        'amount': amount,
-        'currency': currency,
-        'name': paymentData['name'] ?? 'Anugami Store',
-        'description': paymentData['description'] ?? 'Payment for your order',
-        'order_id': razorpayOrderId,
-        'prefill': {
-          'contact': _phoneController.text.trim(),
-          'email': _emailController.text.trim(),
-          'name': _nameController.text.trim(),
-        },
-        'theme': {'color': '#FF7A2E'},
-        'notes': {
-          'order_id': _currentOrderId.toString(),
-        },
+        'key': razorpayData['key_id'],
+        'amount': razorpayData['amount'],
+        'currency': razorpayData['currency'],
+        'name': razorpayData['name'] ?? 'Anugami Store',
+        'description': razorpayData['description'] ?? 'Payment for your orders',
+        'order_id': razorpayData['order_id'],
+        'prefill': razorpayData['prefill'] ??
+            {
+              'contact': _phoneController.text.trim(),
+              'email': _emailController.text.trim(),
+              'name': _nameController.text.trim(),
+            },
+        'notes': razorpayData['notes'] ?? {},
+        'theme': razorpayData['theme'] ?? {'color': '#FF7A2E'},
       };
 
       print('Launching Razorpay with options: $options');
@@ -423,6 +296,33 @@ class _CheckoutPageState extends State<CheckoutPage> {
         _showError('Payment launch error: $e');
       }
     }
+  }
+
+  void _handleCODSuccess(Map<String, dynamic> data, List<dynamic> orders) {
+    String successMessage =
+        'Order placed successfully! You can pay cash on delivery.';
+
+    if (data['shipment_results'] != null) {
+      final shipmentResults = data['shipment_results'] as List<dynamic>;
+      final failedShipments =
+          shipmentResults.where((s) => s['success'] == false);
+      final successfulShipments =
+          shipmentResults.where((s) => s['success'] == true).length;
+
+      if (successfulShipments > 0) {
+        successMessage +=
+            '\n\nShipping has been automatically set up for your orders.';
+      } else if (failedShipments.isNotEmpty) {
+        successMessage +=
+            '\n\nNote: Shipping will be set up manually by the seller.';
+        print('Shipping setup failed: ${failedShipments.first['error']}');
+      }
+    }
+
+    _showSuccessDialog(
+      successMessage,
+      orders: orders.cast<Map<String, dynamic>>(),
+    );
   }
 
   Future<void> _clearCartAndNavigate() async {
@@ -483,8 +383,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
     });
   }
 
-  void _showSuccessDialog(String message) {
+  void _showSuccessDialog(
+    String message, {
+    bool isBulkPayment = false,
+    List<Map<String, dynamic>>? orders,
+  }) {
     if (!mounted) return;
+
+    String title = 'Order Placed Successfully!';
+    if (isBulkPayment && orders != null && orders.length > 1) {
+      title = '${orders.length} Orders Placed Successfully!';
+    }
 
     showDialog(
       context: context,
@@ -495,16 +404,36 @@ class _CheckoutPageState extends State<CheckoutPage> {
           color: Colors.green,
           size: 48,
         ),
-        title: const Text(
-          'Order Placed Successfully!',
-          style: TextStyle(
+        title: Text(
+          title,
+          style: const TextStyle(
             color: Colors.green,
             fontWeight: FontWeight.bold,
           ),
         ),
-        content: Text(
-          message,
-          textAlign: TextAlign.center,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              textAlign: TextAlign.center,
+            ),
+            if (orders != null && orders.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Order Numbers:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              ...orders.map((order) => Text(
+                    order['order_number'] ?? 'N/A',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  )),
+            ],
+          ],
         ),
         actions: [
           ElevatedButton(
@@ -540,7 +469,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.go('/cart'),
         ),
       ),
       body: Stack(

@@ -4,10 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'dart:developer' as developer;
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../../api/services/auth_service.dart';
 import '../../../providers/user_provider.dart';
-import 'address_form_page.dart';
 import 'otp_verification_page.dart';
 
 class CreateAccountPage extends StatefulWidget {
@@ -107,18 +105,63 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
     }
 
     try {
-      developer.log('Starting registration process with OTP verification');
+      developer
+          .log('Starting registration process with email OTP verification');
 
-      // Format phone with country code if not already formatted
-      String formattedPhone = _phoneController.text.trim();
-      if (!formattedPhone.startsWith('+')) {
-        // Assuming India (+91) as default country code
-        formattedPhone =
-            '+91${formattedPhone.replaceAll(RegExp(r'[^0-9]'), '')}';
+      // Register user with backend - this will send email OTP
+      final result = await _authService.register(userData);
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (!result['success']) {
+        // Registration failed, show error
+        _handleRegistrationError(result);
+        return;
       }
 
-      // Start Firebase phone verification BEFORE registering the user
-      await _sendOTP(formattedPhone, userData);
+      // Registration successful, navigate to OTP verification page
+      developer.log('Registration successful, navigating to OTP verification');
+
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OtpVerificationPage(
+              email: result['email'] ?? _emailController.text.trim(),
+              fullName: _fullNameController.text.trim(),
+              isRegistration: true,
+              onVerificationSuccess: (BuildContext context) async {
+                // After successful OTP verification, user is logged in automatically
+                // Update the user provider
+                final userProvider =
+                    Provider.of<UserProvider>(context, listen: false);
+                final userData = await _authService.getUserData();
+                if (userData != null) {
+                  userProvider.setUserData(userData);
+                }
+
+                // Show success message
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          'Account created successfully! Welcome to Anugami.'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+
+                  // Navigate to home or address form as needed
+                  // You can modify this navigation based on your app flow
+                  context.go(
+                      '/home'); // or wherever you want to navigate after registration
+                }
+              },
+            ),
+          ),
+        );
+      }
     } catch (e) {
       developer.log('Error in registration process: $e');
       setState(() {
@@ -128,139 +171,39 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
     }
   }
 
-  // Send OTP via Firebase
-  Future<void> _sendOTP(
-      String phoneNumber, Map<String, dynamic> userData) async {
-    try {
-      await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: phoneNumber,
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          // Auto-verification on Android devices
-          // This will not be triggered on iOS
-          developer.log('Auto verification completed');
-
-          // We need to register the user since auto-verification succeeded
-          await _registerUser(userData);
-
-          // Then proceed to address form if registration was successful
-          if (mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AddressFormPage(
-                  fullName: _fullNameController.text.trim(),
-                  phone: _phoneController.text.trim(),
-                  mode: AddressFormMode.registration,
-                ),
-              ),
-            );
-          }
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          developer.log('Phone verification failed: ${e.message}');
-          setState(() {
-            _isLoading = false;
-            _errorMessage = 'Phone verification failed: ${e.message}';
-          });
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          developer.log('OTP sent to $phoneNumber');
-          setState(() {
-            _isLoading = false;
-          });
-
-          // Navigate to OTP verification page
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => OtpVerificationPage(
-                phoneNumber: phoneNumber,
-                verificationId: verificationId,
-                registrationData:
-                    userData, // Pass registration data to OTP page
-                isUserRegistered: false, // User is NOT registered yet
-                onVerificationSuccess: (BuildContext context) async {
-                  // Register user after successful verification
-                  final success = await _registerUser(userData);
-
-                  if (success && mounted) {
-                    // On successful registration, proceed to address form
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddressFormPage(
-                          fullName: _fullNameController.text.trim(),
-                          phone: _phoneController.text.trim(),
-                          mode: AddressFormMode.registration,
-                        ),
-                      ),
-                    );
-                  }
-                },
-              ),
-            ),
-          );
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          // Auto-retrieval timeout
-          developer.log('OTP auto retrieval timeout');
-        },
-        timeout: const Duration(seconds: 60),
-      );
-    } catch (e) {
-      developer.log('Error sending OTP: $e');
+  void _handleRegistrationError(Map<String, dynamic> result) {
+    // Handle different types of errors from the backend
+    if (result['errors'] != null && result['errors'] is Map) {
+      // Field-specific errors
       setState(() {
-        _isLoading = false;
-        _errorMessage = 'Failed to send verification code. Please try again.';
+        _fieldErrors = result['errors'];
+      });
+
+      // Show a general error message
+      if (result['message'] != null) {
+        setState(() {
+          _errorMessage = result['message'];
+        });
+      }
+    } else if (result['message'] != null) {
+      // General error message
+      setState(() {
+        _errorMessage = result['message'];
+      });
+    } else {
+      setState(() {
+        _errorMessage = 'Registration failed. Please try again.';
       });
     }
-  }
 
-  // Register user after OTP verification
-  Future<bool> _registerUser(Map<String, dynamic> userData) async {
-    try {
-      developer.log('Registering user after OTP verification: $userData');
-      final result = await _authService.register(userData);
-
-      if (!result['success']) {
-        // Registration failed, show error
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message'] ?? 'Registration failed'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return false;
-      }
-
-      // If registration was successful, update the user provider
-      if (mounted) {
-        final userProvider = Provider.of<UserProvider>(context, listen: false);
-
-        if (result['data'] != null) {
-          userProvider.processRegistrationData(result['data']);
-        } else {
-          final userData = await _authService.getUserData();
-          if (userData != null) {
-            userProvider.setUserData(userData);
-          }
-        }
-      }
-      return true;
-    } catch (e) {
-      print(e);
-      developer.log('Error in user registration: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Registration failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return false;
+    // Show snackbar with error
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_errorMessage ?? 'Registration failed'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -340,9 +283,19 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                                   border:
                                       Border.all(color: Colors.red.shade200),
                                 ),
-                                child: Text(
-                                  _errorMessage!,
-                                  style: TextStyle(color: Colors.red.shade800),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.error_outline,
+                                        color: Colors.red.shade800, size: 20),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _errorMessage!,
+                                        style: TextStyle(
+                                            color: Colors.red.shade800),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
 
@@ -355,6 +308,9 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
                                   return 'Please enter your full name';
+                                }
+                                if (value.trim().length < 2) {
+                                  return 'Name must be at least 2 characters long';
                                 }
                                 return null;
                               },
@@ -373,7 +329,8 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                                 if (value == null || value.isEmpty) {
                                   return 'Please enter your email';
                                 }
-                                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                if (!RegExp(
+                                        r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
                                     .hasMatch(value)) {
                                   return 'Please enter a valid email';
                                 }
@@ -394,7 +351,9 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                                 if (value == null || value.isEmpty) {
                                   return 'Please enter your phone number';
                                 }
-                                if (value.trim().length < 10) {
+                                final cleanPhone =
+                                    value.replaceAll(RegExp(r'[^\d]'), '');
+                                if (cleanPhone.length < 10) {
                                   return 'Please enter a valid phone number';
                                 }
                                 return null;
@@ -521,8 +480,8 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                                 if (value == null || value.isEmpty) {
                                   return 'Please enter a password';
                                 }
-                                if (value.length < 6) {
-                                  return 'Password must be at least 6 characters';
+                                if (value.length < 8) {
+                                  return 'Password must be at least 8 characters';
                                 }
                                 return null;
                               },
@@ -560,6 +519,34 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                                 }
                                 return null;
                               },
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // Info box about email verification
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.blue.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline,
+                                      color: Colors.blue.shade700, size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'We\'ll send a verification code to your email address to complete registration.',
+                                      style: TextStyle(
+                                        color: Colors.blue.shade700,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
 
                             const SizedBox(height: 24),

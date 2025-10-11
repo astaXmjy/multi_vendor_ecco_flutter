@@ -126,6 +126,23 @@ class _OrdersPageState extends State<OrdersPage> {
     }
   }
 
+  // Check if order can be cancelled (within 24 hours)
+  bool _canCancelOrder(OrderModel order) {
+    try {
+      final now = DateTime.now();
+      final hoursDifference = now.difference(order.createdAt).inHours;
+
+      // Can cancel within 24 hours and if status allows cancellation
+      final allowedStatuses = ['pending', 'confirmed', 'processing'];
+      final currentStatus = order.status.toLowerCase();
+
+      return hoursDifference < 24 && allowedStatuses.contains(currentStatus);
+    } catch (e) {
+      print('Error checking cancel eligibility: $e');
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -522,8 +539,7 @@ class _OrdersPageState extends State<OrdersPage> {
 
   bool _shouldShowActionButtons(OrderModel order) {
     final status = order.status.toLowerCase();
-    return status == 'pending' ||
-        status == 'confirmed' ||
+    return _canCancelOrder(order) ||
         (order.payment != null && order.payment!.isPending);
   }
 
@@ -531,8 +547,7 @@ class _OrdersPageState extends State<OrdersPage> {
     return Row(
       children: [
         // Cancel order button (if applicable)
-        if (order.status.toLowerCase() == 'pending' ||
-            order.status.toLowerCase() == 'confirmed')
+        if (_canCancelOrder(order))
           Expanded(
             child: OutlinedButton(
               onPressed: () => _showCancelOrderDialog(order),
@@ -545,31 +560,6 @@ class _OrdersPageState extends State<OrdersPage> {
               ),
               child: const Text(
                 'Cancel Order',
-                style: TextStyle(fontSize: 12),
-              ),
-            ),
-          ),
-
-        if (order.status.toLowerCase() == 'pending' ||
-            order.status.toLowerCase() == 'confirmed')
-          const SizedBox(width: 12),
-
-        // Pay now button (if payment is pending)
-        if (order.payment != null &&
-            order.payment!.isPending &&
-            !order.payment!.isCOD)
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () => _initiatePayment(order),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF7A2E),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Pay Now',
                 style: TextStyle(fontSize: 12),
               ),
             ),
@@ -589,59 +579,193 @@ class _OrdersPageState extends State<OrdersPage> {
     );
   }
 
-  // Show cancel order confirmation
+  // Show cancel order confirmation dialog with reason input
   void _showCancelOrderDialog(OrderModel order) {
+    final TextEditingController reasonController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cancel Order'),
-        content: Text(
-            'Are you sure you want to cancel order #${order.orderNumber}?'),
+        title: const Text(
+          'Cancel Order',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.red,
+          ),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Order #${order.orderNumber}'),
+                const SizedBox(height: 8),
+                Text('Amount: ₹${order.totalAmount.toStringAsFixed(0)}'),
+                const SizedBox(height: 16),
+                const Text(
+                  'Are you sure you want to cancel this order?',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Reason for cancellation (optional):',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: reasonController,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter reason for cancellation',
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  maxLines: 2,
+                  maxLength: 150,
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    border: Border.all(color: Colors.orange[200]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline,
+                          color: Colors.orange[600], size: 20),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Orders can only be cancelled within 24 hours of placement.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('No'),
+            onPressed: () {
+              reasonController.dispose();
+              Navigator.of(context).pop();
+            },
+            child: const Text('Keep Order'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(context).pop();
-              _cancelOrder(order);
+              await _cancelOrder(order, reasonController.text.trim());
+              reasonController.dispose();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Yes, Cancel'),
+            child: const Text('Cancel Order'),
           ),
         ],
       ),
     );
   }
 
-  // Cancel order
-  Future<void> _cancelOrder(OrderModel order) async {
-    try {
-      // Implement cancel order API call here
-      _showError('Order cancellation feature will be implemented soon');
-    } catch (e) {
-      _showError('Failed to cancel order: $e');
-    }
-  }
+  // Cancel order with API call
+  Future<void> _cancelOrder(OrderModel order, String reason) async {
+    // Store the context before async operations
+    final currentContext = context;
 
-  // Initiate payment for pending orders
-  Future<void> _initiatePayment(OrderModel order) async {
     try {
-      final result = await _orderService.initiatePayment(orderId: order.id);
+      // Show loading indicator
+      showDialog(
+        context: currentContext,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final result = await _orderService.cancelOrder(
+        orderId: order.id,
+        cancellationReason: reason.isEmpty ? null : reason,
+      );
+
+      // Hide loading indicator - check if context is still mounted
+      if (mounted &&
+          Navigator.of(currentContext, rootNavigator: true).canPop()) {
+        Navigator.of(currentContext, rootNavigator: true).pop();
+      }
 
       if (result['success']) {
-        // Handle payment initiation
-        _showError(
-            'Payment feature will be implemented with Razorpay integration');
+        if (mounted) {
+          // Show success message
+          ScaffoldMessenger.of(currentContext).showSnackBar(
+            SnackBar(
+              content:
+                  Text(result['message'] ?? 'Order cancelled successfully'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              margin: EdgeInsets.symmetric(
+                horizontal: MediaQuery.of(currentContext).size.width * 0.04,
+                vertical: 16,
+              ),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+          );
+
+          // Refresh orders list
+          _fetchOrders();
+        }
       } else {
-        _showError(result['message'] ?? 'Failed to initiate payment');
+        if (mounted) {
+          // Show error message
+          ScaffoldMessenger.of(currentContext).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Failed to cancel order'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              margin: EdgeInsets.symmetric(
+                horizontal: MediaQuery.of(currentContext).size.width * 0.04,
+                vertical: 16,
+              ),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+          );
+        }
       }
     } catch (e) {
-      _showError('Payment error: $e');
+      // Hide loading indicator - check if context is still mounted
+      if (mounted &&
+          Navigator.of(currentContext, rootNavigator: true).canPop()) {
+        Navigator.of(currentContext, rootNavigator: true).pop();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(currentContext).showSnackBar(
+          SnackBar(
+            content: Text('Error cancelling order: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.symmetric(
+              horizontal: MediaQuery.of(currentContext).size.width * 0.04,
+              vertical: 16,
+            ),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        );
+      }
     }
   }
 }

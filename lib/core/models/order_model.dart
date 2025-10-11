@@ -71,6 +71,163 @@ class OrderModel {
       'payment': payment?.toJson(),
     };
   }
+
+  // ============== CANCEL ORDER FUNCTIONALITY ==============
+
+  /// Check if order can be cancelled (created within 24 hours and in cancellable status)
+  bool get canBeCancelled {
+    // Check if order is in a cancellable status
+    final cancellableStatuses = ['pending', 'confirmed'];
+    if (!cancellableStatuses.contains(status.toLowerCase())) {
+      return false;
+    }
+
+    // Check if order was created within 24 hours
+    final now = DateTime.now();
+    final timeDifference = now.difference(createdAt);
+    return timeDifference.inHours < 24;
+  }
+
+  /// Get time remaining to cancel order as a human-readable string
+  String get timeRemainingToCancel {
+    if (!_isWithin24Hours) {
+      return 'Cannot cancel';
+    }
+
+    final now = DateTime.now();
+    final timeDifference = now.difference(createdAt);
+    final hoursRemaining = 24 - timeDifference.inHours;
+
+    if (hoursRemaining <= 0) {
+      return 'Cannot cancel';
+    } else if (hoursRemaining < 1) {
+      final minutesRemaining = 60 - timeDifference.inMinutes % 60;
+      return '$minutesRemaining min left';
+    } else {
+      return '${hoursRemaining}h left to cancel';
+    }
+  }
+
+  /// Check if order is within 24 hours of creation
+  bool get _isWithin24Hours {
+    final now = DateTime.now();
+    final timeDifference = now.difference(createdAt);
+    return timeDifference.inHours < 24;
+  }
+
+  /// Get detailed time remaining information
+  Map<String, dynamic> get timeRemainingDetails {
+    if (!_isWithin24Hours) {
+      return {
+        'canCancel': false,
+        'message': 'Cancellation period expired',
+        'hoursRemaining': 0,
+        'minutesRemaining': 0,
+      };
+    }
+
+    final now = DateTime.now();
+    final timeDifference = now.difference(createdAt);
+    final hoursRemaining = 24 - timeDifference.inHours;
+    final minutesRemaining = 60 - timeDifference.inMinutes % 60;
+
+    return {
+      'canCancel': hoursRemaining > 0,
+      'message': timeRemainingToCancel,
+      'hoursRemaining': hoursRemaining > 0 ? hoursRemaining : 0,
+      'minutesRemaining': hoursRemaining > 0 ? minutesRemaining : 0,
+    };
+  }
+
+  /// Get cancellation eligibility reason
+  String get cancellationStatusMessage {
+    if (status.toLowerCase() == 'cancelled') {
+      return 'Order is already cancelled';
+    }
+
+    if (!['pending', 'confirmed'].contains(status.toLowerCase())) {
+      return 'Order cannot be cancelled in ${status.toLowerCase()} status';
+    }
+
+    if (!_isWithin24Hours) {
+      return 'Cancellation period expired (24 hours limit)';
+    }
+
+    return 'Order can be cancelled';
+  }
+
+  // ============== EXISTING HELPER METHODS ==============
+
+  /// Get order status display color
+  String get statusColor {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return '#FF9800'; // Orange
+      case 'confirmed':
+        return '#2196F3'; // Blue
+      case 'processing':
+        return '#9C27B0'; // Purple
+      case 'shipped':
+        return '#3F51B5'; // Indigo
+      case 'delivered':
+        return '#4CAF50'; // Green
+      case 'cancelled':
+        return '#F44336'; // Red
+      case 'returned':
+        return '#757575'; // Grey
+      default:
+        return '#757575'; // Grey
+    }
+  }
+
+  /// Check if order is completed
+  bool get isCompleted => status.toLowerCase() == 'delivered';
+
+  /// Check if order is active (not cancelled or returned)
+  bool get isActive =>
+      !['cancelled', 'returned'].contains(status.toLowerCase());
+
+  /// Get formatted total amount
+  String get formattedTotalAmount => '₹${totalAmount.toStringAsFixed(2)}';
+
+  /// Get shipping address
+  OrderAddress? get shippingAddress {
+    try {
+      return addresses.firstWhere(
+        (address) => address.addressType.toLowerCase() == 'shipping',
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get billing address
+  OrderAddress? get billingAddress {
+    try {
+      return addresses.firstWhere(
+        (address) => address.addressType.toLowerCase() == 'billing',
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get total items count
+  int get totalItemsCount => items.fold(0, (sum, item) => sum + item.quantity);
+
+  /// Check if order has tracking information
+  bool get hasTrackingInfo => shipping?.hasTrackingInfo == true;
+
+  /// Get display-friendly created date
+  String get formattedCreatedDate {
+    final day = createdAt.day.toString().padLeft(2, '0');
+    final month = createdAt.month.toString().padLeft(2, '0');
+    final year = createdAt.year;
+    final hour = createdAt.hour.toString().padLeft(2, '0');
+    final minute = createdAt.minute.toString().padLeft(2, '0');
+
+    return '$day/$month/$year $hour:$minute';
+  }
 }
 
 class OrderItem {
@@ -129,6 +286,18 @@ class OrderItem {
       'status': status,
     };
   }
+
+  /// Get effective price (sale price if available, otherwise regular price)
+  double get effectivePrice => salePrice ?? price;
+
+  /// Get formatted price
+  String get formattedPrice => '₹${effectivePrice.toStringAsFixed(2)}';
+
+  /// Get total item value
+  double get totalValue => effectivePrice * quantity;
+
+  /// Get formatted total value
+  String get formattedTotalValue => '₹${totalValue.toStringAsFixed(2)}';
 }
 
 class OrderAddress {
@@ -196,6 +365,26 @@ class OrderAddress {
       'country': country,
       'pincode': pincode,
     };
+  }
+
+  /// Get formatted full address
+  String get fullAddress {
+    final parts = <String>[
+      street,
+      area,
+      if (landmark != null && landmark!.isNotEmpty) landmark!,
+      city,
+      state,
+      country,
+      pincode,
+    ];
+    return parts.join(', ');
+  }
+
+  /// Get short address (street, area, city)
+  String get shortAddress {
+    final parts = <String>[street, area, city];
+    return parts.join(', ');
   }
 }
 

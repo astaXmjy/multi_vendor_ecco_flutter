@@ -45,6 +45,7 @@ class _AddressFormPageState extends State<AddressFormPage> {
   final _pincodeController = TextEditingController();
   final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _landmarkController = TextEditingController();
 
   String _selectedAddressType = 'home';
   bool _isDefault = true;
@@ -70,6 +71,7 @@ class _AddressFormPageState extends State<AddressFormPage> {
       _stateController.text = address.state;
       _countryController.text = address.country;
       _pincodeController.text = address.pincode;
+      _landmarkController.text = address.landmark ?? '';
       _selectedAddressType = address.addressType;
       _isDefault = address.isDefault;
     } else if (widget.mode == AddressFormMode.registration) {
@@ -98,6 +100,7 @@ class _AddressFormPageState extends State<AddressFormPage> {
     _pincodeController.dispose();
     _fullNameController.dispose();
     _phoneController.dispose();
+    _landmarkController.dispose();
     super.dispose();
   }
 
@@ -123,6 +126,7 @@ class _AddressFormPageState extends State<AddressFormPage> {
       state: _stateController.text.trim(),
       country: _countryController.text.trim(),
       pincode: _pincodeController.text.trim(),
+      landmark: _landmarkController.text.trim(),
       isDefault: _isDefault,
     );
 
@@ -132,17 +136,17 @@ class _AddressFormPageState extends State<AddressFormPage> {
       if (widget.mode == AddressFormMode.registration) {
         // Use AuthService for registration flow
         result = await _authService.addAddress(addressData.toJson());
-      } else if (widget.mode == AddressFormMode.newAddress) {
-        // Use AddressService for adding new address
-        final addressProvider =
-            Provider.of<AddressProvider>(context, listen: false);
-        result = await addressProvider.addAddress(addressData);
       } else {
-        // Use AddressService for updating existing address
+        // Use AddressProvider for adding/updating address
         final addressProvider =
             Provider.of<AddressProvider>(context, listen: false);
-        result = await addressProvider.updateAddress(
-            addressData.id!, addressData.toJson());
+
+        if (widget.mode == AddressFormMode.newAddress) {
+          result = await addressProvider.addAddress(addressData);
+        } else {
+          result = await addressProvider.updateAddress(
+              addressData.id!, addressData.toJson());
+        }
       }
 
       setState(() {
@@ -169,6 +173,19 @@ class _AddressFormPageState extends State<AddressFormPage> {
       } else {
         setState(() {
           _errorMessage = result['message'] ?? 'Failed to save address';
+
+          // Handle validation errors from server
+          if (result['errors'] != null && result['errors'] is Map) {
+            final errors = result['errors'] as Map<String, dynamic>;
+            final errorMessages = errors.values
+                .where((error) => error is String)
+                .map((error) => error.toString())
+                .toList();
+
+            if (errorMessages.isNotEmpty) {
+              _errorMessage = errorMessages.join('\n');
+            }
+          }
         });
       }
     } catch (e) {
@@ -200,6 +217,43 @@ class _AddressFormPageState extends State<AddressFormPage> {
       case AddressFormMode.editAddress:
         return 'Edit Address';
     }
+  }
+
+  // Validation methods
+  String? _validateFullName(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter your full name';
+    } else if (value.trim().length < 2) {
+      return 'Full name must be at least 2 characters';
+    }
+    return null;
+  }
+
+  String? _validatePhone(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter your phone number';
+    } else if (!RegExp(r'^[6-9]\d{9}$').hasMatch(value.trim())) {
+      return 'Please enter a valid 10-digit phone number';
+    }
+    return null;
+  }
+
+  String? _validatePincode(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter your pincode';
+    } else if (!RegExp(r'^\d{6}$').hasMatch(value.trim())) {
+      return 'Please enter a valid 6-digit pincode';
+    }
+    return null;
+  }
+
+  String? _validateLandmark(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter a landmark';
+    } else if (value.trim().length > 50) {
+      return 'Landmark must be less than 50 characters';
+    }
+    return null;
   }
 
   @override
@@ -251,12 +305,7 @@ class _AddressFormPageState extends State<AddressFormPage> {
                         _buildTextField(
                           controller: _fullNameController,
                           hintText: 'Enter your full name',
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your full name';
-                            }
-                            return null;
-                          },
+                          validator: _validateFullName,
                         ),
                         const SizedBox(height: 16),
                         _buildFormLabel('Phone Number', true),
@@ -264,12 +313,7 @@ class _AddressFormPageState extends State<AddressFormPage> {
                           controller: _phoneController,
                           hintText: 'Enter your phone number',
                           keyboardType: TextInputType.phone,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your phone number';
-                            }
-                            return null;
-                          },
+                          validator: _validatePhone,
                         ),
                       ] else ...[
                         Container(
@@ -394,12 +438,7 @@ class _AddressFormPageState extends State<AddressFormPage> {
                                   controller: _pincodeController,
                                   hintText: 'Enter pincode',
                                   keyboardType: TextInputType.number,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Required';
-                                    }
-                                    return null;
-                                  },
+                                  validator: _validatePincode,
                                 ),
                               ],
                             ),
@@ -420,6 +459,18 @@ class _AddressFormPageState extends State<AddressFormPage> {
                           }
                           return null;
                         },
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Landmark (required)
+                      _buildFormLabel('Landmark', true),
+                      _buildTextField(
+                        controller: _landmarkController,
+                        hintText:
+                            'Enter nearby landmark for easy identification',
+                        maxLines: 2,
+                        validator: _validateLandmark,
                       ),
 
                       const SizedBox(height: 16),

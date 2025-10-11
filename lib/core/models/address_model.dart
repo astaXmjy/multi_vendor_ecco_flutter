@@ -9,6 +9,7 @@ class AddressModel {
   final String state;
   final String country;
   final String pincode;
+  final String landmark;
   final bool isDefault;
 
   AddressModel({
@@ -21,6 +22,7 @@ class AddressModel {
     required this.state,
     required this.country,
     required this.pincode,
+    required this.landmark,
     this.isDefault = false,
   });
 
@@ -35,6 +37,7 @@ class AddressModel {
       state: json['state'] ?? '',
       country: json['country'] ?? '',
       pincode: json['pincode'] ?? '',
+      landmark: json['landmark'],
       isDefault: json['is_default'] ?? false,
     );
   }
@@ -49,6 +52,7 @@ class AddressModel {
       'state': state,
       'country': country,
       'pincode': pincode,
+      'landmark': landmark,
       'is_default': isDefault,
     };
 
@@ -71,6 +75,7 @@ class AddressModel {
     String? state,
     String? country,
     String? pincode,
+    String? landmark,
     bool? isDefault,
   }) {
     return AddressModel(
@@ -83,6 +88,7 @@ class AddressModel {
       state: state ?? this.state,
       country: country ?? this.country,
       pincode: pincode ?? this.pincode,
+      landmark: landmark ?? this.landmark,
       isDefault: isDefault ?? this.isDefault,
     );
   }

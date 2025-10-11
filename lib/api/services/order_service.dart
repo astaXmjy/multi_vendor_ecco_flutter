@@ -7,12 +7,14 @@ import 'package:url_launcher/url_launcher.dart';
 class OrderService {
   final String baseUrl = 'https://anugami.com/api/v1/orders';
 
-  // Checkout - Create orders from cart items
+  // Checkout - Create orders from cart items and initiate payment if needed
   Future<Map<String, dynamic>> checkout({
     required Map<String, dynamic> shippingAddress,
     required String paymentMethod,
     bool clearCart = true,
-    bool autoCreateShipments = false, // Add option for auto shipment creation
+    bool autoCreateShipments = false,
+    String? callbackUrl,
+    String? redirectUrl,
   }) async {
     try {
       final token = await _getToken();
@@ -27,8 +29,12 @@ class OrderService {
       final payload = {
         'shipping_address': shippingAddress,
         'payment_method': paymentMethod,
-        'auto_create_shipments': autoCreateShipments, // Pass to backend
+        'auto_create_shipments': autoCreateShipments,
       };
+
+      // Add callback and redirect URLs if provided
+      if (callbackUrl != null) payload['callback_url'] = callbackUrl;
+      if (redirectUrl != null) payload['redirect_url'] = redirectUrl;
 
       print('Making checkout request to: $baseUrl/orders/checkout/');
       print('Payload: ${json.encode(payload)}');
@@ -91,69 +97,10 @@ class OrderService {
     }
   }
 
-  // Initiate payment for an order (Razorpay integration)
-  Future<Map<String, dynamic>> initiatePayment({
-    required int orderId,
-    String? callbackUrl,
-    String? redirectUrl,
-  }) async {
-    try {
-      final token = await _getToken();
+  // REMOVED: initiatePayment method - now handled in checkout
 
-      if (token == null) {
-        return {
-          'success': false,
-          'message': 'Not authenticated',
-        };
-      }
-
-      // Prepare payload - Django expects this structure
-      final payload = <String, dynamic>{};
-      if (callbackUrl != null) payload['callback_url'] = callbackUrl;
-      if (redirectUrl != null) payload['redirect_url'] = redirectUrl;
-
-      // Fix the URL structure - remove double "orders"
-      final response = await http.post(
-        Uri.parse('$baseUrl/orders/$orderId/initiate-payment/'),
-        headers: {
-          'Authorization': 'Token $token',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode(payload),
-      );
-
-      print(
-          'Payment Initiation URL: $baseUrl/orders/$orderId/initiate-payment/');
-      print('Payment Initiation Payload: ${json.encode(payload)}');
-      print('Payment Initiation Response Status: ${response.statusCode}');
-      print('Payment Initiation Response Body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        return {
-          'success': true,
-          'data': responseData,
-        };
-      } else {
-        final responseData = json.decode(response.body);
-        return {
-          'success': false,
-          'message': responseData['error'] ?? 'Payment initiation failed',
-          'errors': responseData,
-        };
-      }
-    } catch (e) {
-      print('Payment Initiation Error: $e');
-      return {
-        'success': false,
-        'message': 'An error occurred: $e',
-      };
-    }
-  }
-
-  // Verify payment after completion (Razorpay)
+  // Verify payment after completion (Updated for bulk payment structure)
   Future<Map<String, dynamic>> verifyPayment({
-    required int orderId,
     required String razorpayOrderId,
     required String razorpayPaymentId,
     required String razorpaySignature,
@@ -174,8 +121,9 @@ class OrderService {
         'razorpay_signature': razorpaySignature,
       };
 
+      // Updated endpoint for bulk payment verification
       final response = await http.post(
-        Uri.parse('$baseUrl/orders/$orderId/verify-payment/'),
+        Uri.parse('$baseUrl/orders/verify-payment/'),
         headers: {
           'Authorization': 'Token $token',
           'Content-Type': 'application/json',
@@ -251,6 +199,93 @@ class OrderService {
       return {
         'success': false,
         'message': 'An error occurred: $e',
+      };
+    }
+  }
+
+  // Add this method to your OrderService class in order_service.dart
+
+// Cancel order (within 24 hours)
+  Future<Map<String, dynamic>> cancelOrder({
+    required int orderId,
+    String? cancellationReason,
+  }) async {
+    try {
+      final token = await _getToken();
+
+      if (token == null) {
+        return {
+          'success': false,
+          'message': 'Not authenticated',
+        };
+      }
+
+      final payload = <String, dynamic>{
+        'order_id': orderId, // orderId is already an int, so this should work
+      };
+
+      // Add cancellation reason if provided
+      if (cancellationReason != null && cancellationReason.trim().isNotEmpty) {
+        payload['reason'] = cancellationReason.trim();
+      }
+
+      print('Cancel Order Payload: ${json.encode(payload)}');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/cancel-order/'),
+        headers: {
+          'Authorization': 'Token $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(payload),
+      );
+
+      print('Cancel Order Response Status: ${response.statusCode}');
+      print('Cancel Order Response Body: ${response.body}');
+
+      // Check if response is HTML (error page)
+      if (response.headers['content-type']?.contains('text/html') == true) {
+        return {
+          'success': false,
+          'message':
+              'Server returned HTML error page. Status: ${response.statusCode}',
+          'error_details': 'Check server logs for detailed error information',
+        };
+      }
+
+      // Try to parse JSON response
+      Map<String, dynamic> responseData;
+      try {
+        responseData = json.decode(response.body);
+      } catch (e) {
+        return {
+          'success': false,
+          'message': 'Invalid JSON response from server',
+          'error_details': 'Response: ${response.body.substring(0, 200)}...',
+        };
+      }
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': responseData,
+          'message': responseData['message'] ?? 'Order cancelled successfully',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': responseData['error'] ??
+              responseData['message'] ??
+              'Order cancellation failed',
+          'errors': responseData,
+          'status_code': response.statusCode,
+        };
+      }
+    } catch (e) {
+      print('Cancel Order Exception: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
       };
     }
   }
