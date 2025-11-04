@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../providers/user_provider.dart';
+import '../../../../config/theme.dart';
 
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   const HomeAppBar({Key? key}) : super(key: key);
@@ -16,6 +17,11 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     final userId = userProvider.userId;
 
     return AppBar(
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: AppTheme.primaryGradient,
+        ),
+      ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -41,7 +47,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
         ],
       ),
-      backgroundColor: const Color(0xFFFF7A2E),
+      backgroundColor: Colors.transparent,
       elevation: 0,
       actions: [
         IconButton(

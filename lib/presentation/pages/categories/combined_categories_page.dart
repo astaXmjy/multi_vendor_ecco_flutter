@@ -1,4 +1,5 @@
 // lib/presentation/pages/categories/combined_categories_page.dart
+import 'package:anu_app/config/theme.dart';
 import 'package:anu_app/main.dart';
 import 'package:anu_app/presentation/pages/categories/category_tree_products_page.dart';
 import 'package:anu_app/providers/product_provider.dart';
@@ -87,9 +88,9 @@ class _CombinedCategoriesPageState extends State<CombinedCategoriesPage> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(
-          color: Color(0xFFFF7A2E),
+          color: AppTheme.primaryGradient.colors[1],
         ),
       );
     }
@@ -118,13 +119,21 @@ class _CombinedCategoriesPageState extends State<CombinedCategoriesPage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _loadCategories,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF7A2E),
-                foregroundColor: Colors.white,
+            Container(
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text('Try Again'),
+              child: ElevatedButton(
+                onPressed: _loadCategories,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Try Again'),
+              ),
             ),
           ],
         ),
@@ -207,14 +216,14 @@ class SubcategoryPage extends StatelessWidget {
                           width: 40,
                           height: 40,
                           fit: BoxFit.cover,
-                          errorBuilder: (ctx, _, __) => const Icon(
+                          errorBuilder: (ctx, _, __) => Icon(
                             Icons.category,
-                            color: Color(0xFFFF7A2E),
+                            color: AppTheme.primaryGradient.colors[1],
                           ),
                         )
-                      : const Icon(
+                      : Icon(
                           Icons.category,
-                          color: Color(0xFFFF7A2E),
+                          color: AppTheme.primaryGradient.colors[1],
                         ),
                   title: Text(
                     subcategory.name,
@@ -226,10 +235,10 @@ class SubcategoryPage extends StatelessWidget {
                     '${subcategory.productCount} products',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
-                  trailing: const Icon(
+                  trailing: Icon(
                     Icons.arrow_forward_ios,
                     size: 16,
-                    color: Color(0xFFFF7A2E),
+                    color: AppTheme.primaryGradient.colors[1],
                   ),
                   onTap: () {
                     if (subcategory.children.isNotEmpty) {

@@ -1,8 +1,9 @@
 // lib/presentation/pages/home/widgets/product_card.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/Provider.dart';
 import '../../../../core/models/product_model.dart';
 import '../../../../providers/wishlist_provider.dart';
+import '../../../../config/theme.dart';
 
 class ProductCard extends StatelessWidget {
   final ProductModel product;
@@ -69,7 +70,7 @@ class ProductCard extends StatelessWidget {
                                       ? loadingProgress.cumulativeBytesLoaded /
                                           loadingProgress.expectedTotalBytes!
                                       : null,
-                                  color: const Color(0xFFFF7A2E),
+                                  color: AppTheme.primaryColor,
                                   strokeWidth: 2,
                                 ),
                               );
@@ -193,12 +194,16 @@ class ProductCard extends StatelessWidget {
                     // Price section
                     Row(
                       children: [
-                        Text(
-                          product.formattedSalePrice,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFFF7A2E),
+                        ShaderMask(
+                          blendMode: BlendMode.srcIn,
+                          shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+                          child: Text(
+                            product.formattedSalePrice,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                         if (product.discountPercentage.isNotEmpty) ...[

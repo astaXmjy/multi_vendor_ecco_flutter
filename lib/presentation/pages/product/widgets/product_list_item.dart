@@ -1,6 +1,7 @@
 // lib/presentation/pages/product/widgets/product_list_item.dart
 import 'package:anu_app/providers/product_provider.dart';
 import 'package:anu_app/providers/wishlist_provider.dart';
+import 'package:anu_app/config/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/models/product_model.dart';
@@ -61,7 +62,7 @@ class ProductListItem extends StatelessWidget {
                                                 .cumulativeBytesLoaded /
                                             loadingProgress.expectedTotalBytes!
                                         : null,
-                                    color: const Color(0xFFFF7A2E),
+                                    color: AppTheme.primaryColor,
                                     strokeWidth: 2,
                                   ),
                                 );
@@ -143,10 +144,10 @@ class ProductListItem extends StatelessWidget {
                       children: [
                         Text(
                           product.formattedSalePrice,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFFFF7A2E),
+                            color: AppTheme.primaryColor,
                           ),
                         ),
                         const SizedBox(width: 8),

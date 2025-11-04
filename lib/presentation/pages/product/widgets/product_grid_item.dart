@@ -1,4 +1,5 @@
 // lib/presentation/pages/product/widgets/product_grid_item.dart
+import 'package:anu_app/config/theme.dart';
 import 'package:anu_app/main.dart';
 import 'package:anu_app/providers/cart_provider.dart';
 import 'package:anu_app/providers/product_provider.dart';
@@ -80,7 +81,7 @@ class ProductGridItem extends StatelessWidget {
                                       height: 20,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: const Color(0xFFFF7A2E),
+                                        color: AppTheme.primaryColor,
                                         value: loadingProgress
                                                     .expectedTotalBytes !=
                                                 null
@@ -230,7 +231,7 @@ class ProductGridItem extends StatelessWidget {
                           style: TextStyle(
                             fontSize: isSmallScreen ? 12 : 14,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFFFF7A2E),
+                            color: AppTheme.primaryColor,
                           ),
                         ),
                       ],

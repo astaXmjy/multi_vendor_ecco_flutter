@@ -9,6 +9,9 @@ import '../../../providers/address_provider.dart';
 import '../../../api/services/order_service.dart';
 import '../../../core/models/order_model.dart';
 import '../../../core/models/address_model.dart';
+import 'package:anu_app/config/theme.dart';
+
+
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({Key? key}) : super(key: key);
@@ -436,17 +439,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ],
         ),
         actions: [
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              await _clearCartAndNavigate();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF7A2E),
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 45),
+          Container(
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text('View Orders'),
+            child: ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _clearCartAndNavigate();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                minimumSize: const Size(double.infinity, 45),
+              ),
+              child: const Text('View Orders'),
+            ),
           ),
         ],
       ),
@@ -465,7 +475,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: const Color(0xFFFF7A2E),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: AppTheme.primaryGradient,
+          ),
+        ),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -513,7 +527,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   children: [
                     const CircularProgressIndicator(
                       valueColor:
-                          AlwaysStoppedAnimation<Color>(Color(0xFFFF7A2E)),
+                          AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -549,9 +563,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
               children: [
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.shopping_cart_outlined,
-                      color: Color(0xFFFF7A2E),
+                      color: AppTheme.primaryColor,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -631,10 +645,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     ),
                     Text(
                       '₹${cartProvider.finalTotal.toStringAsFixed(2)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFFFF7A2E),
+                        color: AppTheme.primaryColor,
                       ),
                     ),
                   ],
@@ -663,7 +677,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   children: [
                     const Icon(
                       Icons.location_on_outlined,
-                      color: Color(0xFFFF7A2E),
+                      color: Color(0xFFFEAF4E),
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -702,7 +716,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             }
                           });
                         },
-                        activeColor: const Color(0xFFFF7A2E),
+                        activeColor: const Color(0xFFFEAF4E),
                       ),
                       const Expanded(
                         child: Text(
@@ -746,7 +760,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                           vertical: 2,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFFF7A2E),
+                                          color: const Color(0xFFFEAF4E),
                                           borderRadius:
                                               BorderRadius.circular(4),
                                         ),
@@ -790,7 +804,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 }
                               });
                             },
-                            activeColor: const Color(0xFFFF7A2E),
+                            activeColor: const Color(0xFFFEAF4E),
                             dense: true,
                           );
                         }).toList(),
@@ -820,7 +834,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             }
                           });
                         },
-                        activeColor: const Color(0xFFFF7A2E),
+                        activeColor: const Color(0xFFFEAF4E),
                       ),
                       const Expanded(
                         child: Text(
@@ -880,7 +894,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               children: [
                 const Icon(
                   Icons.edit_location_outlined,
-                  color: Color(0xFFFF7A2E),
+                  color: Color(0xFFFEAF4E),
                   size: 20,
                 ),
                 const SizedBox(width: 8),
@@ -1097,7 +1111,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               children: [
                 const Icon(
                   Icons.payment_outlined,
-                  color: Color(0xFFFF7A2E),
+                  color: Color(0xFFFEAF4E),
                   size: 20,
                 ),
                 const SizedBox(width: 8),
@@ -1142,7 +1156,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         _paymentMethod = value!;
                       });
                     },
-                    activeColor: const Color(0xFFFF7A2E),
+                    activeColor: const Color(0xFFFEAF4E),
                     dense: true,
                   ),
                   const Divider(height: 1),
@@ -1178,7 +1192,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         _paymentMethod = value!;
                       });
                     },
-                    activeColor: const Color(0xFFFF7A2E),
+                    activeColor: const Color(0xFFFEAF4E),
                     dense: true,
                   ),
                 ],
@@ -1251,7 +1265,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFFFF7A2E),
+                        color: Color(0xFFFEAF4E),
                       ),
                     ),
                   ],
@@ -1260,70 +1274,73 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 SizedBox(
                   width: double.infinity,
                   height: 50,
-                  child: ElevatedButton(
-                    onPressed:
-                        _isLoading || _processingPayment ? null : _checkout,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF7A2E),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 2,
-                      disabledBackgroundColor: Colors.grey[400],
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: _isLoading || _processingPayment
-                        ? Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Flexible(
-                                child: Text(
-                                  _processingPayment
-                                      ? 'Processing Payment...'
-                                      : 'Creating Order...',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                    child: ElevatedButton(
+                      onPressed:
+                          _isLoading || _processingPayment ? null : _checkout,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        disabledBackgroundColor: Colors.grey[400],
+                      ),
+                      child: _isLoading || _processingPayment
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
                                   ),
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ],
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                _paymentMethod == 'COD'
-                                    ? Icons.shopping_bag
-                                    : Icons.payment,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
+                                const SizedBox(width: 12),
+                                Flexible(
+                                  child: Text(
+                                    _processingPayment
+                                        ? 'Processing Payment...'
+                                        : 'Creating Order...',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
                                   _paymentMethod == 'COD'
-                                      ? 'Place Order'
-                                      : 'Proceed to Payment',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
+                                      ? Icons.shopping_bag
+                                      : Icons.payment,
+                                  size: 20,
                                 ),
-                              ),
-                            ],
-                          ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    _paymentMethod == 'COD'
+                                        ? 'Place Order'
+                                        : 'Proceed to Payment',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
                   ),
                 ),
                 if (_paymentMethod != 'COD') ...[

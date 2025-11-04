@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../providers/user_provider.dart';
 import '../../profile/my_addresses_page.dart';
 import 'drawer_item.dart';
+import 'package:anu_app/config/theme.dart';
 
 class HomeDrawer extends StatelessWidget {
   const HomeDrawer({Key? key}) : super(key: key);
@@ -23,26 +24,23 @@ class HomeDrawer extends StatelessWidget {
         children: [
           DrawerHeader(
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFFFF7A2E), // Orange
-                  Color(0xFFFF4947), // Coral
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: AppTheme.primaryGradient,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 30,
                   backgroundColor: Colors.white,
-                  child: Icon(
-                    Icons.person,
-                    size: 35,
-                    color: Color(0xFFFF7A2E),
+                  child: ShaderMask(
+                    blendMode: BlendMode.srcIn,
+                    shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+                    child: const Icon(
+                      Icons.person,
+                      size: 35,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),

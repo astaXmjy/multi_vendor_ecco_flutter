@@ -155,7 +155,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         title: 'Anugami E-commerce',
         theme: AppTheme.lightTheme,
         home: const Scaffold(
-          backgroundColor: AppTheme.backgroundColor,
+          backgroundColor: Colors.white,
           body: SafeArea(
             child: Center(
               child: Column(
@@ -165,7 +165,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   Icon(
                     Icons.shopping_bag,
                     size: 80,
-                    color: AppTheme.primaryColor,
+                    color: Color(0xFFFEAF4E),
                   ),
                   SizedBox(height: 24),
 
@@ -175,14 +175,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryColor,
+                      color: Color(0xFFFEAF4E),
                     ),
                   ),
                   SizedBox(height: 16),
 
                   // Loading indicator
                   CircularProgressIndicator(
-                    color: AppTheme.primaryColor,
+                    color: Color(0xFFFEAF4E),
                     strokeWidth: 3,
                   ),
                   SizedBox(height: 16),
@@ -204,8 +204,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       );
     }
 
-    // Create the router configuration
-    final router = AppRoutes.createRouter(isLoggedIn: _userProvider.isLoggedIn);
+    // ✅ REMOVED: Don't create router here anymore
+    // final router = AppRoutes.createRouter(isLoggedIn: _userProvider.isLoggedIn);
 
     // Wrap the app with providers for state management
     return MultiProvider(
@@ -224,25 +224,38 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         // Add review provider
         ChangeNotifierProvider(create: (_) => ReviewProvider()),
       ],
-      child: MaterialApp.router(
-        title: 'Anugami E-commerce',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        routerConfig: router,
 
-        // Global scaffold messenger for showing snackbars across the app
-        scaffoldMessengerKey: GlobalKey<ScaffoldMessengerState>(),
+      // ✅ NEW: Wrap MaterialApp.router with Consumer
+      child: Consumer<UserProvider>(
+        builder: (context, userProvider, _) {
+          // ✅ Router is rebuilt whenever userProvider.notifyListeners() is called
+          return MaterialApp.router(
+            title: 'Anugami E-commerce',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
 
-        // Builder to handle global UI modifications
-        builder: (context, child) {
-          // Handle responsive design and orientation
-          return MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              // Ensure text scaling doesn't exceed reasonable limits
-              textScaleFactor:
-                  MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.3),
+            // ✅ NEW: Create router here with refreshListenable
+            routerConfig: AppRoutes.createRouter(
+              isLoggedIn: userProvider.isLoggedIn,
+              refreshListenable:
+                  userProvider, // 🎯 This makes the magic happen!
             ),
-            child: child ?? const SizedBox.shrink(),
+
+            // Global scaffold messenger for showing snackbars across the app
+            scaffoldMessengerKey: GlobalKey<ScaffoldMessengerState>(),
+
+            // Builder to handle global UI modifications
+            builder: (context, child) {
+              // Handle responsive design and orientation
+              return MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  // Ensure text scaling doesn't exceed reasonable limits
+                  textScaleFactor:
+                      MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.3),
+                ),
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
           );
         },
       ),

@@ -1,4 +1,5 @@
 // lib/presentation/pages/categories/widgets/category_list_item.dart
+import 'package:anu_app/config/theme.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/models/category_model.dart';
 
@@ -99,13 +100,13 @@ class _CategoryListItemState extends State<CategoryListItem> {
                     _isExpanded
                         ? Icons.keyboard_arrow_up
                         : Icons.keyboard_arrow_down,
-                    color: const Color(0xFFFF7A2E),
+                    color: AppTheme.primaryGradient.colors[1],
                   )
                 else
-                  const Icon(
+                  Icon(
                     Icons.arrow_forward_ios,
                     size: 16,
-                    color: Color(0xFFFF7A2E),
+                    color: AppTheme.primaryGradient.colors[1],
                   ),
               ],
             ),
@@ -160,10 +161,10 @@ class _CategoryListItemState extends State<CategoryListItem> {
                 ),
               ),
             ),
-            const Icon(
+            Icon(
               Icons.arrow_forward_ios,
               size: 14,
-              color: Color(0xFFFF7A2E),
+              color: AppTheme.primaryGradient.colors[1],
             ),
           ],
         ),

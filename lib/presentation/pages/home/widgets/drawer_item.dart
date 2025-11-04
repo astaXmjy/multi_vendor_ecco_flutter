@@ -1,5 +1,6 @@
 // lib/presentation/pages/home/widgets/drawer_item.dart
 import 'package:flutter/material.dart';
+import 'package:anu_app/config/theme.dart';
 
 class DrawerItem extends StatelessWidget {
   final IconData icon;
@@ -16,7 +17,11 @@ class DrawerItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFFFF7A2E)),
+      leading: ShaderMask(
+        blendMode: BlendMode.srcIn,
+        shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+        child: Icon(icon, color: Colors.white),
+      ),
       title: Text(title),
       onTap: onTap,
     );

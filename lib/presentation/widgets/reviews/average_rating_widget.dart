@@ -1,3 +1,4 @@
+import 'package:anu_app/config/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/models/review_model.dart';
@@ -140,10 +141,10 @@ class AverageRatingWidget extends StatelessWidget {
                         children: [
                           Text(
                             averageRating.toStringAsFixed(1),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFFFF7A2E),
+                              color: AppTheme.primaryColor,
                             ),
                           ),
                           const Text(

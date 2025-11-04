@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import '../../../api/services/order_service.dart';
 import '../../../core/models/order_model.dart';
+import '../../../config/theme.dart';
 import '../../widgets/order_tracking_dialog.dart';
 import '../shared/custom_app_bar.dart';
 
@@ -161,14 +162,14 @@ class _OrdersPageState extends State<OrdersPage> {
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF7A2E)),
+                color: AppTheme.primaryColor,
               ),
             )
           : _orders.isEmpty
               ? _buildEmptyState()
               : RefreshIndicator(
                   onRefresh: _fetchOrders,
-                  color: const Color(0xFFFF7A2E),
+                  color: AppTheme.primaryColor,
                   child: ListView.builder(
                     padding: EdgeInsets.symmetric(
                       horizontal: MediaQuery.of(context).size.width * 0.04,
@@ -216,21 +217,30 @@ class _OrdersPageState extends State<OrdersPage> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  // Use Go Router for navigation
-                  context.go('/home');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF7A2E),
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text('Start Shopping'),
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Use Go Router for navigation
+                    context.go('/home');
+                  },
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.all<Color>(Colors.transparent),
+                    foregroundColor: WidgetStateProperty.all<Color>(Colors.white),
+                    padding: WidgetStateProperty.all<EdgeInsets>(
+                        const EdgeInsets.symmetric(horizontal: 32, vertical: 12)),
+                    shape: WidgetStateProperty.all<RoundedRectangleBorder>(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    shadowColor: WidgetStateProperty.all<Color>(Colors.transparent),
+                  ),
+                  child: const Text('Start Shopping'),
+                ),
               ),
             ],
           ),
@@ -327,8 +337,8 @@ class _OrdersPageState extends State<OrdersPage> {
                       Container(
                         width: 4,
                         height: 4,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFF7A2E),
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.primaryGradient,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -436,12 +446,16 @@ class _OrdersPageState extends State<OrdersPage> {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      '₹${order.totalAmount.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFFF7A2E),
+                    ShaderMask(
+                      blendMode: BlendMode.srcIn,
+                      shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+                      child: Text(
+                        '₹${order.totalAmount.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -498,25 +512,30 @@ class _OrdersPageState extends State<OrdersPage> {
                   ),
                   // Track Order Button
                   if (order.shipping!.hasTrackingInfo)
-                    TextButton(
-                      onPressed: () => _showTrackingDialog(order),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        backgroundColor:
-                            const Color(0xFFFF7A2E).withOpacity(0.1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text(
-                        'Track',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFFFF7A2E),
-                          fontWeight: FontWeight.w600,
+                      child: TextButton(
+                        onPressed: () => _showTrackingDialog(order),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          backgroundColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text(
+                          'Track',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -655,12 +674,22 @@ class _OrdersPageState extends State<OrdersPage> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              reasonController.dispose();
-              Navigator.of(context).pop();
-            },
-            child: const Text('Keep Order'),
+          Container(
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: TextButton(
+              onPressed: () {
+                reasonController.dispose();
+                Navigator.of(context).pop();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: Colors.transparent,
+              ),
+              child: const Text('Keep Order'),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {

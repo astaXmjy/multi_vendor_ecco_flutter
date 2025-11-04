@@ -1,4 +1,5 @@
 // lib/presentation/pages/profile/widgets/profile_menu_item.dart
+import 'package:anu_app/config/theme.dart';
 import 'package:flutter/material.dart';
 
 class ProfileMenuItem extends StatelessWidget {
@@ -20,7 +21,7 @@ class ProfileMenuItem extends StatelessWidget {
     return ListTile(
       leading: Icon(
         icon,
-        color: const Color(0xFFFF7A2E),
+        color: AppTheme.primaryColor,
       ),
       title: Text(
         title,

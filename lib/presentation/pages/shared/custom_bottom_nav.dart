@@ -4,6 +4,7 @@ import 'package:anu_app/providers/wishlist_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../../config/theme.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -22,7 +23,7 @@ class CustomBottomNavBar extends StatelessWidget {
         return BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
           currentIndex: currentIndex,
-          selectedItemColor: const Color(0xFFFF7A2E),
+          selectedItemColor: AppTheme.primaryColor,
           unselectedItemColor: Colors.grey,
           onTap: (index) => _onItemTapped(index, context),
           items: [

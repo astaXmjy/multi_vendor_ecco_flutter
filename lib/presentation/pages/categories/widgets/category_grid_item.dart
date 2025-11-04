@@ -1,4 +1,5 @@
 // lib/presentation/pages/categories/widgets/category_grid_item.dart
+import 'package:anu_app/config/theme.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/models/category_model.dart';
 
@@ -49,7 +50,7 @@ class CategoryGridItem extends StatelessWidget {
                         errorBuilder: (context, error, stackTrace) {
                           return Icon(
                             _getCategoryIcon(),
-                            color: const Color(0xFFFF7A2E),
+                            color: AppTheme.primaryGradient.colors[1],
                             size: 35,
                           );
                         },
@@ -57,7 +58,7 @@ class CategoryGridItem extends StatelessWidget {
                     )
                   : Icon(
                       _getCategoryIcon(),
-                      color: const Color(0xFFFF7A2E),
+                      color: AppTheme.primaryGradient.colors[1],
                       size: 35,
                     ),
             ),

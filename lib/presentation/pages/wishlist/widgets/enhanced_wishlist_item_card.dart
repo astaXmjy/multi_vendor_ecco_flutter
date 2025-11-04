@@ -529,14 +529,18 @@ class _EnhancedWishlistItemCardState extends State<EnhancedWishlistItemCard> {
       padding: EdgeInsets.only(top: isCompact ? 4 : 6),
       child: Row(
         children: [
-          Text(
+        ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+          child: Text(
             widget.item.productInfo.formattedPrice,
             style: TextStyle(
               fontSize: isCompact ? 14 : 16,
               fontWeight: FontWeight.bold,
-              color: AppTheme.primaryColor,
+              color: Colors.white,
             ),
           ),
+        ),
           if (widget.item.productInfo.hasDiscount) ...[
             const SizedBox(width: 8),
             Text(
@@ -624,28 +628,62 @@ class _EnhancedWishlistItemCardState extends State<EnhancedWishlistItemCard> {
     final isDisabled = !widget.item.productInfo.isAvailable ||
         !widget.item.productInfo.hasValidPrice;
 
-    return SizedBox(
-      height: isCompact ? 36 : 40,
-      child: ElevatedButton.icon(
-        onPressed: isDisabled ? null : widget.onAddToCart,
-        icon: Icon(
-          Icons.shopping_cart_outlined,
-          size: isCompact ? 16 : 18,
-        ),
-        label: Text(
-          'Add to Cart',
-          style: TextStyle(
-            fontSize: isCompact ? 12 : 14,
-            fontWeight: FontWeight.w600,
+    if (isDisabled) {
+      return SizedBox(
+        height: isCompact ? 36 : 40,
+        child: ElevatedButton.icon(
+          onPressed: null,
+          icon: Icon(
+            Icons.shopping_cart_outlined,
+            size: isCompact ? 16 : 18,
+          ),
+          label: Text(
+            'Add to Cart',
+            style: TextStyle(
+              fontSize: isCompact ? 12 : 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.grey.shade300,
+            foregroundColor: Colors.grey.shade600,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor:
-              isDisabled ? Colors.grey.shade300 : AppTheme.primaryColor,
-          foregroundColor: isDisabled ? Colors.grey.shade600 : Colors.white,
-          elevation: isDisabled ? 0 : 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+      );
+    }
+
+    return SizedBox(
+      height: isCompact ? 36 : 40,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: AppTheme.primaryGradient,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ElevatedButton.icon(
+          onPressed: widget.onAddToCart,
+          icon: Icon(
+            Icons.shopping_cart_outlined,
+            size: isCompact ? 16 : 18,
+          ),
+          label: Text(
+            'Add to Cart',
+            style: TextStyle(
+              fontSize: isCompact ? 12 : 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shadowColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         ),
       ),

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../api/services/category_service.dart';
 import '../../../../core/models/category_model.dart';
+import '../../../../config/theme.dart';
 
 class CategoriesSection extends StatefulWidget {
   final Function(CategoryModel)? onCategoryTap;
@@ -69,10 +70,12 @@ class _CategoriesSectionState extends State<CategoriesSection> {
                 onPressed: () {
                   context.go('/categories');
                 },
-                child: const Text(
-                  'View All',
-                  style: TextStyle(
-                    color: Color(0xFFFF7A2E),
+                child: ShaderMask(
+                  blendMode: BlendMode.srcIn,
+                  shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+                  child: const Text(
+                    'View All',
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ),
@@ -90,7 +93,7 @@ class _CategoriesSectionState extends State<CategoriesSection> {
         height: 120,
         child: Center(
           child: CircularProgressIndicator(
-            color: const Color(0xFFFF7A2E),
+            color: AppTheme.primaryColor,
           ),
         ),
       );
@@ -247,10 +250,14 @@ class CategoryItem extends StatelessWidget {
 
   Widget _buildFallbackIcon() {
     return Center(
-      child: Icon(
-        _getCategoryIcon(),
-        color: const Color(0xFFFF7A2E),
-        size: 30,
+      child: ShaderMask(
+        blendMode: BlendMode.srcIn,
+        shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+        child: Icon(
+          _getCategoryIcon(),
+          color: Colors.white,
+          size: 30,
+        ),
       ),
     );
   }

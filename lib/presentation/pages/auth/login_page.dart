@@ -9,6 +9,7 @@ import 'dart:developer' as developer;
 import '../../../api/services/auth_service.dart';
 import '../../../providers/user_provider.dart';
 import 'package:flutter/foundation.dart';
+import 'package:anu_app/config/theme.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -66,20 +67,28 @@ class _LoginPageState extends State<LoginPage> {
       // Handle response
       if (result['success']) {
         if (mounted) {
-          final userProvider = Provider.of<UserProvider>(context, listen: false);
+          final userProvider =
+              Provider.of<UserProvider>(context, listen: false);
+
+          // ✅ Process login data (this calls notifyListeners())
           userProvider.processLoginData(result['data']);
 
-          // Navigate immediately after setting user data
-          context.go('/home');
+          // ✅ NEW: Small delay to let the router refresh with new auth state
+          await Future.delayed(const Duration(milliseconds: 100));
 
-          // Initialize wishlist in background
-          unawaited(
-            Provider.of<WishlistProvider>(context, listen: false)
-                .initialize()
-                .catchError((e) {
-              developer.log('Background wishlist init error: $e');
-            }),
-          );
+          if (mounted) {
+            // ✅ Navigate - router is now aware of new auth state
+            context.go('/home');
+
+            // Initialize wishlist in background
+            unawaited(
+              Provider.of<WishlistProvider>(context, listen: false)
+                  .initialize()
+                  .catchError((e) {
+                developer.log('Background wishlist init error: $e');
+              }),
+            );
+          }
         }
       } else {
         // Login failed
@@ -127,14 +136,7 @@ class _LoginPageState extends State<LoginPage> {
                           topLeft: Radius.circular(16),
                           topRight: Radius.circular(16),
                         ),
-                        gradient: LinearGradient(
-                          colors: [
-                            Color(0xFFFF7A2E), // Orange
-                            Color(0xFFFF4947), // Coral
-                          ],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
+                        gradient: AppTheme.primaryGradient,
                       ),
                       child: const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,7 +212,7 @@ class _LoginPageState extends State<LoginPage> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: const BorderSide(
-                                  color: Color(0xFFFF7A2E),
+                                  color: Color(0xFFF96A4C),
                                 ),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
@@ -251,7 +253,7 @@ class _LoginPageState extends State<LoginPage> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: const BorderSide(
-                                  color: Color(0xFFFF7A2E),
+                                  color: Color(0xFFF96A4C),
                                 ),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
@@ -281,11 +283,18 @@ class _LoginPageState extends State<LoginPage> {
                               onPressed: () {
                                 // Navigate to forgot password screen
                               },
-                              child: const Text(
-                                'Forgot your password?',
-                                style: TextStyle(
-                                  color: Color(0xFFFF7A2E),
-                                  fontWeight: FontWeight.w500,
+                              child: ShaderMask(
+                                shaderCallback: (bounds) =>
+                                    AppTheme.primaryGradient.createShader(
+                                  Rect.fromLTWH(
+                                      0, 0, bounds.width, bounds.height),
+                                ),
+                                child: const Text(
+                                  'Forgot your password?',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
                             ),
@@ -294,24 +303,50 @@ class _LoginPageState extends State<LoginPage> {
                           const SizedBox(height: 16),
 
                           // Login button
-                          ElevatedButton.icon(
-                            onPressed: _isLoading ? null : _handleLogin,
-                            icon: _isLoading
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ))
-                                : const Icon(Icons.login_rounded),
-                            label: Text(_isLoading ? 'Logging in...' : 'Login'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF7A2E),
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(double.infinity, 50),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _handleLogin,
+                              style: ElevatedButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  gradient: _isLoading
+                                      ? null
+                                      : AppTheme.primaryGradient,
+                                  color: _isLoading ? Colors.grey : null,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (_isLoading)
+                                        const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      else
+                                        const Icon(Icons.login_rounded),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _isLoading ? 'Logging in...' : 'Login',
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -335,11 +370,18 @@ class _LoginPageState extends State<LoginPage> {
                                 onPressed: () {
                                   context.go('/create-account');
                                 },
-                                child: const Text(
-                                  'Create account',
-                                  style: TextStyle(
-                                    color: Color(0xFFFF7A2E),
-                                    fontWeight: FontWeight.w500,
+                                child: ShaderMask(
+                                  shaderCallback: (bounds) =>
+                                      AppTheme.primaryGradient.createShader(
+                                    Rect.fromLTWH(
+                                        0, 0, bounds.width, bounds.height),
+                                  ),
+                                  child: const Text(
+                                    'Create account',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
                               ),

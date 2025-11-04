@@ -1,4 +1,5 @@
 // lib/presentation/widgets/breadcrumb_navigation.dart
+import 'package:anu_app/config/theme.dart';
 import 'package:anu_app/main.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -42,7 +43,7 @@ class BreadcrumbNavigation extends StatelessWidget {
               child: const Text(
                 'Home',
                 style: TextStyle(
-                  color: Color(0xFFFF7A2E),
+                  color: AppTheme.primaryColor,
                   fontSize: 14,
                 ),
               ),
@@ -72,7 +73,7 @@ class BreadcrumbNavigation extends StatelessWidget {
                         ? FontWeight.bold
                         : FontWeight.normal,
                     color: i < breadcrumbs.length - 1
-                        ? const Color(0xFFFF7A2E)
+                        ? AppTheme.primaryColor
                         : Colors.black,
                   ),
                 ),

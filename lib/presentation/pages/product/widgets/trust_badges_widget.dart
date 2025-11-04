@@ -1,3 +1,4 @@
+import 'package:anu_app/config/theme.dart';
 import 'package:flutter/material.dart';
 
 class TrustBadgesWidget extends StatefulWidget {
@@ -155,12 +156,12 @@ class _TrustBadgesWidgetState extends State<TrustBadgesWidget>
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF7A2E).withOpacity(0.1),
+                    color: AppTheme.primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.verified_user,
-                    color: const Color(0xFFFF7A2E),
+                    color: AppTheme.primaryColor,
                     size: isTablet ? 20 : 18,
                   ),
                 ),

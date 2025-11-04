@@ -1,3 +1,4 @@
+import 'package:anu_app/config/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../api/services/profile_service.dart';
@@ -106,7 +107,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(
-          color: Color(0xFFFF7A2E),
+          color: AppTheme.primaryColor,
         ),
       );
     }

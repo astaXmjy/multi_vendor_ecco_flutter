@@ -1,4 +1,5 @@
 // lib/presentation/pages/categories/widgets/animated_category_list.dart
+import 'package:anu_app/config/theme.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/models/category_model.dart';
 
@@ -110,7 +111,7 @@ class _AnimatedCategoryListState extends State<AnimatedCategoryList> {
                   ),
                   child: Icon(
                     _getCategoryIcon(category.name),
-                    color: const Color(0xFFFF7A2E),
+                    color: AppTheme.primaryGradient.colors[1],
                     size: 24,
                   ),
                 ),
@@ -140,7 +141,7 @@ class _AnimatedCategoryListState extends State<AnimatedCategoryList> {
                   hasChildren
                       ? Icons.arrow_forward_ios
                       : Icons.arrow_forward_ios,
-                  color: const Color(0xFFFF7A2E),
+                  color: AppTheme.primaryGradient.colors[1],
                   size: hasChildren ? 14 : 14,
                 ),
               ),
@@ -180,10 +181,10 @@ class _AnimatedCategoryListState extends State<AnimatedCategoryList> {
                   ),
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios,
                 size: 12,
-                color: Color(0xFFFF7A2E),
+                color: AppTheme.primaryGradient.colors[1],
               ),
             ],
           ),

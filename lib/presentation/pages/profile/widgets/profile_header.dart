@@ -1,4 +1,5 @@
 // lib/presentation/pages/profile/widgets/profile_header.dart
+import 'package:anu_app/config/theme.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/models/profile_model.dart';
 
@@ -14,8 +15,8 @@ class ProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: Color(0xFFFF7A2E),
+      decoration: BoxDecoration(
+        gradient: AppTheme.primaryGradient,
       ),
       child: Column(
         children: [
@@ -31,7 +32,7 @@ class ProfileHeader extends StatelessWidget {
                   child: Icon(
                     Icons.person,
                     size: 60,
-                    color: Color(0xFFFF7A2E),
+                    color: AppTheme.primaryColor,
                   ),
                 ),
           const SizedBox(height: 12),

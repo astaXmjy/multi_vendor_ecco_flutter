@@ -1,4 +1,5 @@
 // lib/presentation/pages/product/enhanced_product_details_content.dart
+import 'package:anu_app/config/theme.dart';
 import 'package:anu_app/presentation/pages/product/widgets/trust_badges_widget.dart';
 import 'package:anu_app/presentation/widgets/reviews/average_rating_widget.dart';
 import 'package:anu_app/presentation/widgets/reviews/review_form.dart';
@@ -180,12 +181,15 @@ class _EnhancedProductDetailsContentState
         children: [
           Row(
             children: [
-              Text(
-                _getCurrentPrice(),
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFFF7A2E),
+              ShaderMask(
+                shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+                child: Text(
+                  _getCurrentPrice(),
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -346,7 +350,7 @@ class _EnhancedProductDetailsContentState
                 "h1, h2, h3, h4, h5, h6": Style(
                   margin: Margins.only(top: 16, bottom: 8),
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFFFF7A2E),
+                  color: AppTheme.primaryColor,
                 ),
                 "h1": Style(fontSize: FontSize(22)),
                 "h2": Style(fontSize: FontSize(20)),
@@ -366,15 +370,15 @@ class _EnhancedProductDetailsContentState
                   fontStyle: FontStyle.italic,
                 ),
                 "a": Style(
-                  color: const Color(0xFFFF7A2E),
+                  color: AppTheme.primaryColor,
                   textDecoration: TextDecoration.underline,
                 ),
                 "blockquote": Style(
                   margin: Margins.symmetric(vertical: 12),
                   padding: HtmlPaddings.only(left: 16),
-                  border: const Border(
+                  border: Border(
                     left: BorderSide(
-                      color: Color(0xFFFF7A2E),
+                      color: AppTheme.primaryColor,
                       width: 4,
                     ),
                   ),
@@ -513,10 +517,10 @@ class _EnhancedProductDetailsContentState
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFF7A2E).withOpacity(0.1),
+                color: AppTheme.primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                  color: const Color(0xFFFF7A2E).withOpacity(0.3),
+                  color: AppTheme.primaryColor.withOpacity(0.3),
                 ),
               ),
               child: Row(
@@ -524,8 +528,8 @@ class _EnhancedProductDetailsContentState
                 children: [
                   Text(
                     _isDescriptionExpanded ? 'Show Less' : 'Show More',
-                    style: const TextStyle(
-                      color: Color(0xFFFF7A2E),
+                    style: TextStyle(
+                      color: AppTheme.primaryColor,
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
@@ -535,7 +539,7 @@ class _EnhancedProductDetailsContentState
                     _isDescriptionExpanded
                         ? Icons.keyboard_arrow_up
                         : Icons.keyboard_arrow_down,
-                    color: const Color(0xFFFF7A2E),
+                    color: AppTheme.primaryColor,
                     size: 18,
                   ),
                 ],
@@ -587,10 +591,10 @@ class _EnhancedProductDetailsContentState
                         context.push(
                             '/products?type=category&title=$categoryName&category=${widget.product.category}');
                       },
-                      child: const Text(
+                      child: Text(
                         'View All',
                         style: TextStyle(
-                          color: Color(0xFFFF7A2E),
+                          color: AppTheme.primaryColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -605,9 +609,9 @@ class _EnhancedProductDetailsContentState
               Container(
                 height: 280,
                 margin: const EdgeInsets.symmetric(horizontal: 16),
-                child: const Center(
+                child: Center(
                   child: CircularProgressIndicator(
-                    color: Color(0xFFFF7A2E),
+                    color: AppTheme.primaryColor,
                   ),
                 ),
               )
@@ -781,12 +785,15 @@ class _EnhancedProductDetailsContentState
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          product.formattedSalePrice,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFFF7A2E),
+                        ShaderMask(
+                          shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+                          child: Text(
+                            product.formattedSalePrice,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                         if (product.discountPercentage.isNotEmpty)
@@ -967,8 +974,8 @@ class _EnhancedProductDetailsContentState
                           icon: const Icon(Icons.rate_review),
                           label: const Text('Write a Review'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFFFF7A2E),
-                            side: const BorderSide(color: Color(0xFFFF7A2E)),
+                            foregroundColor: AppTheme.primaryColor,
+                            side: BorderSide(color: AppTheme.primaryColor),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -1169,47 +1176,108 @@ class _EnhancedProductDetailsContentState
                   children: [
                     // Add to Cart button
                     Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _isAddToCartEnabled() ? _addToCart : null,
-                        icon: const Icon(Icons.shopping_cart_outlined),
-                        label: const Text('Add to Cart'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: _isAddToCartEnabled()
-                              ? const Color(0xFFFF7A2E)
-                              : Colors.grey,
-                          side: BorderSide(
-                            color: _isAddToCartEnabled()
-                                ? const Color(0xFFFF7A2E)
-                                : Colors.grey.shade300,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
+                      child: _isAddToCartEnabled()
+                          ? InkWell(
+                              onTap: _addToCart,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: AppTheme.primaryColor),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.shopping_cart_outlined, color: AppTheme.primaryColor),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Add to Cart',
+                                      style: TextStyle(
+                                        color: AppTheme.primaryColor,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.shopping_cart_outlined, color: Colors.grey),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Add to Cart',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                     ),
 
                     const SizedBox(width: 12),
 
                     // Buy Now button
                     Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _isAddToCartEnabled() ? _buyNow : null,
-                        icon: const Icon(Icons.flash_on),
-                        label: const Text('Buy Now'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _isAddToCartEnabled()
-                              ? const Color(0xFFFF7A2E)
-                              : Colors.grey.shade300,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: _isAddToCartEnabled() ? 2 : 0,
-                        ),
-                      ),
+                      child: _isAddToCartEnabled()
+                          ? InkWell(
+                              onTap: _buyNow,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                decoration: BoxDecoration(
+                                  gradient: AppTheme.primaryGradient,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.flash_on, color: Colors.white),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Buy Now',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade300,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.flash_on, color: Colors.grey),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Buy Now',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                     ),
                   ],
                 ),

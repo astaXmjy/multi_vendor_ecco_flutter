@@ -103,7 +103,7 @@ class _VariantSelectorWidgetState extends State<VariantSelectorWidget> {
                   decoration: BoxDecoration(
                     border: Border.all(
                       color: isSelected
-                          ? const Color(0xFFFF7A2E)
+                          ? const Color(0xFFFEAF4E)
                           : Colors.grey.shade300,
                       width: isSelected ? 2 : 1,
                     ),
@@ -206,13 +206,13 @@ class _VariantSelectorWidgetState extends State<VariantSelectorWidget> {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? const Color(0xFFFF7A2E)
+                      ? const Color(0xFFFEAF4E)
                       : isOutOfStock
                           ? Colors.grey.shade100
                           : Colors.white,
                   border: Border.all(
                     color: isSelected
-                        ? const Color(0xFFFF7A2E)
+                        ? const Color(0xFFFEAF4E)
                         : isOutOfStock
                             ? Colors.grey.shade300
                             : Colors.grey.shade400,
@@ -268,7 +268,7 @@ class _VariantSelectorWidgetState extends State<VariantSelectorWidget> {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFFFF7A2E),
+                      color: Color(0xFFFEAF4E),
                     ),
                   ),
               ],

@@ -1,4 +1,5 @@
 // lib/presentation/pages/product/product_detail_page.dart
+import 'package:anu_app/config/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -119,7 +120,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CircularProgressIndicator(
-                    color: Color(0xFFFF7A2E),
+                    color: AppTheme.primaryColor,
                   ),
                   SizedBox(height: 16),
                   Text('Loading product details...'),
@@ -156,13 +157,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           ),
                     ),
                     const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: _loadProductDetails,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF7A2E),
-                        foregroundColor: Colors.white,
+                    InkWell(
+                      onTap: _loadProductDetails,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.primaryGradient,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'Try Again',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                      child: const Text('Try Again'),
                     ),
                   ],
                 ),

@@ -78,7 +78,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFFFF7A2E), // Header background
+              primary: Color(0xFFFEAF4E), // Header background
               onPrimary: Colors.white, // Header text
               onSurface: Colors.black, // Calendar text
             ),
@@ -325,7 +325,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFF7A2E),
+                            color: const Color(0xFFFEAF4E),
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 2),
                           ),
@@ -352,7 +352,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     child: const Text(
                       "Tap to change profile picture",
                       style: TextStyle(
-                        color: Color(0xFFFF7A2E),
+                        color: Color(0xFFFEAF4E),
                       ),
                     ),
                   ),
@@ -469,7 +469,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     onPressed:
                         _hasChanges && !_isLoading ? _updateProfile : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF7A2E),
+                      backgroundColor: const Color(0xFFFEAF4E),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -540,7 +540,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFFF7A2E)),
+        borderSide: const BorderSide(color: Color(0xFFFEAF4E)),
       ),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 16,

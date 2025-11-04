@@ -1,3 +1,4 @@
+import 'package:anu_app/config/theme.dart';
 import 'package:flutter/material.dart';
 
 import '../../api/services/order_service.dart';
@@ -104,7 +105,7 @@ class _PaymentTrackingDialogState extends State<PaymentTrackingDialog> {
           children: [
             if (!_isComplete)
               const CircularProgressIndicator(
-                color: Color(0xFFFF7A2E),
+                color: AppTheme.primaryColor,
               )
             else
               Icon(
@@ -135,16 +136,24 @@ class _PaymentTrackingDialogState extends State<PaymentTrackingDialog> {
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => widget.onPaymentComplete(_isSuccess),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF7A2E),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
+                child: InkWell(
+                  onTap: () => widget.onPaymentComplete(_isSuccess),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
                       borderRadius: BorderRadius.circular(8),
                     ),
+                    child: const Text(
+                      'Continue',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                  child: const Text('Continue'),
                 ),
               ),
             ],

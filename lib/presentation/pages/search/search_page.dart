@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/models/product_model.dart';
 import '../../../providers/product_provider.dart';
+import '../../../config/theme.dart';
 import '../home/widgets/product_card.dart';
 import '../shared/custom_app_bar.dart';
 import '../shared/custom_bottom_nav.dart';
@@ -151,17 +152,26 @@ class _SearchPageState extends State<SearchPage> {
                   color: Colors.black87,
                 ),
               ),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _recentSearches.clear();
-                  });
-                },
-                child: const Text(
-                  'Clear All',
-                  style: TextStyle(
-                    color: Color(0xFFFF7A2E),
-                    fontSize: 14,
+              Container(
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _recentSearches.clear();
+                    });
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.transparent,
+                  ),
+                  child: const Text(
+                    'Clear All',
+                    style: TextStyle(
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
@@ -236,26 +246,33 @@ class _SearchPageState extends State<SearchPage> {
             spacing: 8,
             runSpacing: 8,
             children: _searchSuggestions.map((suggestion) {
-              return Material(
-                color: const Color(0xFFFF7A2E).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-                child: InkWell(
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
                   borderRadius: BorderRadius.circular(20),
-                  onTap: () {
-                    _searchController.text = suggestion;
-                    _performSearch(suggestion);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    child: Text(
-                      suggestion,
-                      style: const TextStyle(
-                        color: Color(0xFFFF7A2E),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () {
+                      _searchController.text = suggestion;
+                      _performSearch(suggestion);
+                    },
+                    child: Container(
+                      padding: EdgeInsets.zero,
+                      child: Text(
+                        suggestion,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
@@ -309,20 +326,27 @@ class _SearchPageState extends State<SearchPage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => context.push('/categories'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF7A2E),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+            Container(
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text('Browse Categories'),
+              child: ElevatedButton(
+                onPressed: () => context.push('/categories'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  shadowColor: Colors.transparent,
+                ),
+                child: const Text('Browse Categories'),
+              ),
             ),
           ],
         ),
@@ -414,7 +438,7 @@ class _SearchPageState extends State<SearchPage> {
                 if (isLoading) {
                   return const Center(
                     child: CircularProgressIndicator(
-                      color: Color(0xFFFF7A2E),
+                      color: AppTheme.primaryColor,
                     ),
                   );
                 }
@@ -453,21 +477,31 @@ class _SearchPageState extends State<SearchPage> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 20),
-                          ElevatedButton(
-                            onPressed: () {
-                              if (_searchController.text.isNotEmpty) {
-                                _performSearch(_searchController.text);
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF7A2E),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 10,
-                              ),
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.primaryGradient,
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text('Retry'),
+                            child: ElevatedButton(
+                              onPressed: () {
+                                if (_searchController.text.isNotEmpty) {
+                                  _performSearch(_searchController.text);
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 10,
+                                ),
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: const Text('Retry'),
+                            ),
                           ),
                         ],
                       ),

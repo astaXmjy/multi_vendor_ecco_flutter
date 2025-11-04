@@ -8,6 +8,7 @@ import '../../../api/services/address_service.dart';
 import '../../../core/models/address_model.dart';
 import '../../../providers/user_provider.dart';
 import '../../../providers/address_provider.dart';
+import 'package:anu_app/config/theme.dart';
 
 enum AddressFormMode {
   registration, // For user registration flow
@@ -265,7 +266,19 @@ class _AddressFormPageState extends State<AddressFormPage> {
           _getPageTitle(),
           style: const TextStyle(color: Colors.white),
         ),
-        backgroundColor: const Color(0xFFFF7A2E),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFFFEAF4E),
+                Color(0xFFF96A4C),
+                Color(0xFFE54481),
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+          ),
+        ),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -480,7 +493,8 @@ class _AddressFormPageState extends State<AddressFormPage> {
                         children: [
                           Checkbox(
                             value: _isDefault,
-                            activeColor: const Color(0xFFFF7A2E),
+                            activeColor: const Color(
+                                0xFFF96A4C), // Middle color of gradient
                             onChanged: (value) {
                               setState(() {
                                 _isDefault = value ?? false;
@@ -519,28 +533,52 @@ class _AddressFormPageState extends State<AddressFormPage> {
                       ElevatedButton(
                         onPressed: _isLoading ? null : _submitAddress,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF7A2E),
+                          padding: EdgeInsets.zero,
                           foregroundColor: Colors.white,
                           minimumSize: const Size(double.infinity, 50),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                widget.mode == AddressFormMode.editAddress
-                                    ? 'Update Address'
-                                    : 'Save Address',
-                                style: const TextStyle(fontSize: 16),
-                              ),
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            gradient: _isLoading
+                                ? null
+                                : const LinearGradient(
+                                    colors: [
+                                      Color(0xFFFEAF4E),
+                                      Color(0xFFF96A4C),
+                                      Color(0xFFE54481),
+                                    ],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
+                            color: _isLoading ? Colors.grey : null,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Container(
+                            alignment: Alignment.center,
+                            constraints: const BoxConstraints(
+                              minWidth: double.infinity,
+                              minHeight: 50,
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    widget.mode == AddressFormMode.editAddress
+                                        ? 'Update Address'
+                                        : 'Save Address',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                          ),
+                        ),
                       ),
 
                       // Skip button for registration only
@@ -549,11 +587,18 @@ class _AddressFormPageState extends State<AddressFormPage> {
                         TextButton(
                           onPressed:
                               _isLoading ? null : () => context.go('/home'),
-                          child: const Text(
-                            'Skip for now',
-                            style: TextStyle(
-                              color: Color(0xFFFF7A2E),
-                              fontSize: 16,
+                          child: ShaderMask(
+                            shaderCallback: (bounds) =>
+                                AppTheme.primaryGradient.createShader(
+                              Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                            ),
+                            child: const Text(
+                              'Skip for now',
+                              style: TextStyle(
+                                color: Colors
+                                    .white, // This will be masked by gradient
+                                fontSize: 16,
+                              ),
                             ),
                           ),
                         ),
@@ -617,7 +662,7 @@ class _AddressFormPageState extends State<AddressFormPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFFF7A2E)),
+          borderSide: const BorderSide(color: Color(0xFFF96A4C)),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),

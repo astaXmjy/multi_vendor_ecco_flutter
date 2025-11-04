@@ -1,4 +1,5 @@
 // lib/presentation/pages/profile/widgets/address_card.dart
+import 'package:anu_app/config/theme.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/models/address_model.dart';
 
@@ -24,7 +25,7 @@ class AddressCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: address.isDefault
-              ? const Color(0xFFFF7A2E)
+              ? AppTheme.primaryColor
               : Colors.grey.shade300,
           width: address.isDefault ? 2 : 1,
         ),
@@ -39,8 +40,8 @@ class AddressCard extends StatelessWidget {
               child: Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFF7A2E),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
                   borderRadius: BorderRadius.only(
                     topRight: Radius.circular(12),
                     bottomLeft: Radius.circular(12),
@@ -159,7 +160,7 @@ class AddressCard extends StatelessWidget {
                         ),
                         label: const Text('Set as Default'),
                         style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFFFF7A2E),
+                          foregroundColor: AppTheme.primaryColor,
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                         ),
                       ),

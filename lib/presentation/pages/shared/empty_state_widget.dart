@@ -63,17 +63,24 @@ class EmptyStateWidget extends StatelessWidget {
                 actionText != null &&
                 actionText!.isNotEmpty) ...[
               const SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  textStyle: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w500),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                onPressed: onActionPressed,
-                child: Text(actionText!),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w500),
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
+                  ),
+                  onPressed: onActionPressed,
+                  child: Text(actionText!),
+                ),
               ),
             ],
           ],

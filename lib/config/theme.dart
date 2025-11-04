@@ -5,8 +5,9 @@ enum ScreenSize { mobile, tablet, desktop }
 
 class AppTheme {
   // Brand colors
-  static const Color primaryColor = Color(0xFFFF7A2E);
-  static const Color secondaryColor = Color(0xFFFF4947);
+  static const Color primaryColor = Color(0xFFF96A4C); // #feaf4e
+  static const Color secondaryColor = Color(0xFFF96A4C); // #f96a4c
+  static const Color accentColor = Color(0xFFE54481);
   static const Color backgroundColor = Color(0xFFFFF8F5);
   static const Color surfaceColor = Colors.white;
   static const Color errorColor = Color(0xFFE53E3E);
@@ -18,6 +19,17 @@ class AppTheme {
   static const Color textSecondary = Color(0xFF718096);
   static const Color textMuted = Color(0xFFA0AEC0);
   static const Color dividerColor = Color(0xFFE2E8F0);
+
+// Gradient colors
+  static const LinearGradient primaryGradient = LinearGradient(
+    colors: [
+      Color(0xFFFEAF4E), // #feaf4e
+      Color(0xFFF96A4C), // #f96a4c
+      Color(0xFFE54481), // #e54481
+    ],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
 
   // Responsive breakpoints
   static const double mobileBreakpoint = 600;

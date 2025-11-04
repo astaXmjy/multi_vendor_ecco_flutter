@@ -3,6 +3,7 @@ import 'package:anu_app/main.dart';
 import 'package:anu_app/presentation/pages/auth/address_form_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../config/theme.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -28,7 +29,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
-      backgroundColor: const Color(0xFFFF7A2E),
+      backgroundColor: Colors.transparent,
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: AppTheme.primaryGradient,
+        ),
+      ),
       elevation: 0,
       leading: showBackButton
           ? IconButton(

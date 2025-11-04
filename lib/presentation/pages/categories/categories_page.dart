@@ -1,4 +1,5 @@
 // lib/presentation/pages/categories/categories_page.dart
+import 'package:anu_app/config/theme.dart';
 import 'package:anu_app/main.dart';
 import 'package:anu_app/presentation/pages/categories/category_tree_products_page.dart';
 import 'package:anu_app/providers/product_provider.dart';
@@ -68,9 +69,9 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(
-          color: Color(0xFFFF7A2E),
+          color: AppTheme.primaryGradient.colors[1],
         ),
       );
     }
@@ -99,13 +100,21 @@ class _CategoriesPageState extends State<CategoriesPage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _loadCategories,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF7A2E),
-                foregroundColor: Colors.white,
+            Container(
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text('Try Again'),
+              child: ElevatedButton(
+                onPressed: _loadCategories,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Try Again'),
+              ),
             ),
           ],
         ),

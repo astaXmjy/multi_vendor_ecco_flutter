@@ -1,5 +1,6 @@
 // lib/presentation/pages/home/widgets/category_item.dart
 import 'package:flutter/material.dart';
+import '../../../../config/theme.dart';
 
 class CategoryItem extends StatelessWidget {
   final String name;
@@ -37,10 +38,14 @@ class CategoryItem extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Icon(
-                icon,
-                color: const Color(0xFFFF7A2E),
-                size: 30,
+              child: ShaderMask(
+                blendMode: BlendMode.srcIn,
+                shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 30,
+                ),
               ),
             ),
             const SizedBox(height: 8),

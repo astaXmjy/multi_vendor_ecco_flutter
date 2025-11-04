@@ -1,5 +1,6 @@
 // lib/presentation/pages/product/products_page.dart
 import 'package:anu_app/config/routes.dart';
+import 'package:anu_app/config/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/models/product_model.dart';
@@ -165,9 +166,9 @@ class _ProductsPageState extends State<ProductsPage> {
 
           // Show loading state
           if (isLoading && products.isEmpty) {
-            return const Center(
+            return Center(
               child: CircularProgressIndicator(
-                color: Color(0xFFFF7A2E),
+                color: AppTheme.primaryColor,
               ),
             );
           }
@@ -200,13 +201,23 @@ class _ProductsPageState extends State<ProductsPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: _loadProducts,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF7A2E),
-                      foregroundColor: Colors.white,
+                  InkWell(
+                    onTap: _loadProducts,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Try Again',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
-                    child: const Text('Try Again'),
                   ),
                 ],
               ),
@@ -244,7 +255,7 @@ class _ProductsPageState extends State<ProductsPage> {
           // Show product list/grid
           return RefreshIndicator(
             onRefresh: _loadProducts,
-            color: const Color(0xFFFF7A2E),
+            color: AppTheme.primaryColor,
             child: Column(
               children: [
                 // Products count and sort options
@@ -502,17 +513,27 @@ class _ProductsPageState extends State<ProductsPage> {
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
+                        child: InkWell(
+                          onTap: () {
                             Navigator.pop(context);
                             // Apply filters
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFF7A2E),
-                            foregroundColor: Colors.white,
+                          child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.primaryGradient,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'Apply',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
-                          child: const Text('Apply'),
                         ),
                       ),
                     ],

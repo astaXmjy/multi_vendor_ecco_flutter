@@ -1,8 +1,9 @@
 // lib/presentation/pages/home/widgets/products_section.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/Provider.dart';
 import '../../../../core/models/product_model.dart';
 import '../../../../providers/wishlist_provider.dart';
+import '../../../../config/theme.dart';
 import 'section_title.dart';
 import 'product_card.dart';
 import 'product_card_skeleton.dart';
@@ -100,7 +101,7 @@ class ProductsSection extends StatelessWidget {
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
                 style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFFFF7A2E),
+                  foregroundColor: AppTheme.primaryColor,
                 ),
               ),
           ],

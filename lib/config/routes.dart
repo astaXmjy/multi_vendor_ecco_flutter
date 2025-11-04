@@ -23,10 +23,19 @@ import '../core/models/profile_model.dart';
 import '../presentation/pages/orders/orders_page.dart';
 
 class AppRoutes {
-  static GoRouter createRouter({required bool isLoggedIn}) {
+  // ✅ UPDATED: Added refreshListenable parameter
+  static GoRouter createRouter({
+    required bool isLoggedIn,
+    required Listenable refreshListenable, // 🎯 NEW: This makes router reactive
+  }) {
     return GoRouter(
       initialLocation: isLoggedIn ? '/home' : '/login',
       debugLogDiagnostics: true,
+
+      // ✅ NEW: This line makes the router refresh when UserProvider changes
+      refreshListenable: refreshListenable,
+
+      // ✅ SIMPLIFIED: Redirect logic
       redirect: (context, state) {
         final isLoginRoute = state.matchedLocation == '/login';
         final isCreateAccountRoute = state.matchedLocation == '/create-account';
@@ -35,20 +44,16 @@ class AppRoutes {
         final userProvider = Provider.of<UserProvider>(context, listen: false);
         final currentAuthState = userProvider.isLoggedIn;
 
-        // If auth state changed, update accordingly
-        if (currentAuthState != isLoggedIn) {
-          return currentAuthState ? '/home' : '/login';
-        }
-
-        // Original redirect logic
-        if (!isLoggedIn && !isLoginRoute && !isCreateAccountRoute) {
+        // Redirect based on current auth state
+        if (!currentAuthState && !isLoginRoute && !isCreateAccountRoute) {
           return '/login';
         }
-        if (isLoggedIn && (isLoginRoute || isCreateAccountRoute)) {
+        if (currentAuthState && (isLoginRoute || isCreateAccountRoute)) {
           return '/home';
         }
         return null;
       },
+
       routes: [
         // Authentication Routes
         GoRoute(
@@ -183,7 +188,7 @@ class AppRoutes {
           builder: (context, state) => const CheckoutPage(),
         ),
 
-        // Orders Routes (New - Add these)
+        // Orders Routes
         GoRoute(
           path: '/orders',
           name: 'orders',
@@ -199,6 +204,7 @@ class AppRoutes {
             return SearchPage(initialQuery: query);
           },
         ),
+
         // Review Routes
         GoRoute(
           path: '/product/:slug/review',
@@ -213,15 +219,13 @@ class AppRoutes {
             );
           },
         ),
-        //   ],
-        // );
       ],
 
       // Error handling with better UX
       errorBuilder: (context, state) => Scaffold(
         appBar: AppBar(
           title: const Text('Page Not Found'),
-          backgroundColor: const Color(0xFFFF7A2E),
+          backgroundColor: const Color(0xFFFEAF4E),
           foregroundColor: Colors.white,
         ),
         body: Center(
@@ -266,7 +270,7 @@ class AppRoutes {
                     ElevatedButton(
                       onPressed: () => context.go('/home'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF7A2E),
+                        backgroundColor: const Color(0xFFFEAF4E),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -278,8 +282,8 @@ class AppRoutes {
                     OutlinedButton(
                       onPressed: () => context.go('/cart'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFFF7A2E),
-                        side: const BorderSide(color: Color(0xFFFF7A2E)),
+                        foregroundColor: const Color(0xFFFEAF4E),
+                        side: const BorderSide(color: Color(0xFFFEAF4E)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),

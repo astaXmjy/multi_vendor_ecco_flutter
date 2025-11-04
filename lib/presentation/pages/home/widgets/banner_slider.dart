@@ -1,6 +1,7 @@
 // lib/presentation/pages/home/widgets/banner_slider.dart
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import '../../../../config/theme.dart';
 
 class BannerSlider extends StatefulWidget {
   const BannerSlider({Key? key}) : super(key: key);
@@ -62,7 +63,7 @@ class _BannerSliderState extends State<BannerSlider> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: _currentBannerIndex == entry.key
-                    ? const Color(0xFFFF7A2E)
+                    ? AppTheme.primaryColor
                     : Colors.grey.withOpacity(0.5),
               ),
             );

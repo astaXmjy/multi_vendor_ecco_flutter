@@ -1,4 +1,5 @@
 // lib/presentation/pages/product/category_tree_products_page.dart
+import 'package:anu_app/config/theme.dart';
 import 'package:anu_app/presentation/pages/product/widgets/product_grid_item.dart';
 import 'package:anu_app/presentation/pages/product/widgets/product_list_item.dart';
 import 'package:flutter/material.dart';
@@ -196,9 +197,9 @@ class _CategoryTreeProductsPageState extends State<CategoryTreeProductsPage> {
   }) {
     // Show loading state
     if (isLoading && products.isEmpty) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(
-          color: Color(0xFFFF7A2E),
+          color: AppTheme.primaryGradient.colors[0],
         ),
       );
     }
@@ -231,13 +232,21 @@ class _CategoryTreeProductsPageState extends State<CategoryTreeProductsPage> {
               ),
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _loadProducts,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF7A2E),
-                foregroundColor: Colors.white,
+            Container(
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text('Try Again'),
+              child: ElevatedButton(
+                onPressed: _loadProducts,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Try Again'),
+              ),
             ),
           ],
         ),
@@ -275,7 +284,7 @@ class _CategoryTreeProductsPageState extends State<CategoryTreeProductsPage> {
     // Show product list/grid with subcategories
     return RefreshIndicator(
       onRefresh: _loadProducts,
-      color: const Color(0xFFFF7A2E),
+      color: AppTheme.primaryGradient.colors[0],
       child: Column(
         children: [
           // Subcategories section (always show in horizontal scroll)
@@ -361,16 +370,16 @@ class _CategoryTreeProductsPageState extends State<CategoryTreeProductsPage> {
                       child: Image.network(
                         subcategory.imageUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Icon(
-                          Icons.category,
-                          color: const Color(0xFFFF7A2E),
-                          size: 30,
-                        ),
+                      errorBuilder: (context, error, stackTrace) => Icon(
+                        Icons.category,
+                        color: AppTheme.primaryGradient.colors[0],
+                        size: 30,
+                      ),
                       ),
                     )
                   : Icon(
                       Icons.category,
-                      color: const Color(0xFFFF7A2E),
+                      color: AppTheme.primaryGradient.colors[0],
                       size: 30,
                     ),
             ),

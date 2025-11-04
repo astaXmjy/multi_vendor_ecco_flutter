@@ -27,7 +27,7 @@ class BreadcrumbWidget extends StatelessWidget {
               child: const Text(
                 'Home',
                 style: TextStyle(
-                  color: Color(0xFFFF7A2E),
+                  color: Color(0xFFFEAF4E),
                   fontSize: 14,
                 ),
               ),
@@ -53,7 +53,7 @@ class BreadcrumbWidget extends StatelessWidget {
                       fontSize: 14,
                       color: index == breadcrumbs.length - 1
                           ? Colors.black
-                          : const Color(0xFFFF7A2E),
+                          : const Color(0xFFFEAF4E),
                       fontWeight: index == breadcrumbs.length - 1
                           ? FontWeight.bold
                           : FontWeight.normal,

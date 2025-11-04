@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'dart:developer' as developer;
 import '../../../providers/user_provider.dart';
 import '../../../api/services/auth_service.dart';
+import 'package:anu_app/config/theme.dart';
 
 class OtpVerificationPage extends StatefulWidget {
   final String email;
@@ -286,7 +287,11 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
           widget.isRegistration ? 'Verify Your Email' : 'Email Verification',
           style: const TextStyle(color: Colors.white),
         ),
-        backgroundColor: const Color(0xFFFF7A2E),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AppTheme.primaryGradient,
+          ),
+        ),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -305,13 +310,13 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                   height: 100,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF7A2E).withOpacity(0.1),
+                    color: const Color(0xFFF96A4C).withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.email_outlined,
                     size: 60,
-                    color: Color(0xFFFF7A2E),
+                    color: Color(0xFFF96A4C),
                   ),
                 ),
 
@@ -410,28 +415,46 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                   onPressed:
                       _isLoading || !_isOTPComplete() ? null : _verifyOTP,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF7A2E),
+                    padding: EdgeInsets.zero,
                     foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 50),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : Text(
-                          widget.isRegistration
-                              ? 'Verify & Complete Registration'
-                              : 'Verify Email',
-                          style: const TextStyle(fontSize: 16),
-                        ),
+                  child: Ink(
+                    decoration: BoxDecoration(
+                      gradient: (_isLoading || !_isOTPComplete())
+                          ? null
+                          : AppTheme.primaryGradient,
+                      color: (_isLoading || !_isOTPComplete())
+                          ? Colors.grey
+                          : null,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Container(
+                      alignment: Alignment.center,
+                      constraints: const BoxConstraints(
+                        minWidth: double.infinity,
+                        minHeight: 50,
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              widget.isRegistration
+                                  ? 'Verify & Complete Registration'
+                                  : 'Verify Email',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 24),
@@ -458,7 +481,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                         style: TextStyle(
                           fontSize: 14,
                           color: _canResend && !_isResending
-                              ? const Color(0xFFFF7A2E)
+                              ? const Color(0xFFF96A4C)
                               : Colors.grey,
                           fontWeight: FontWeight.w600,
                         ),
@@ -473,17 +496,17 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF7A2E).withOpacity(0.05),
+                    color: const Color(0xFFF96A4C).withOpacity(0.05),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: const Color(0xFFFF7A2E).withOpacity(0.2),
+                      color: const Color(0xFFF96A4C).withOpacity(0.2),
                     ),
                   ),
                   child: Column(
                     children: [
                       const Icon(
                         Icons.info_outline,
-                        color: Color(0xFFFF7A2E),
+                        color: Color(0xFFF96A4C),
                         size: 24,
                       ),
                       const SizedBox(height: 8),
@@ -491,7 +514,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                         'Check your email inbox and spam folder',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Color(0xFFFF7A2E),
+                          color: Color(0xFFF96A4C),
                           fontWeight: FontWeight.w500,
                         ),
                         textAlign: TextAlign.center,
@@ -556,7 +579,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
               borderSide: BorderSide(
                 color: _errorMessage != null
                     ? Colors.red
-                    : const Color(0xFFFF7A2E),
+                    : const Color(0xFFF96A4C),
                 width: 2,
               ),
             ),

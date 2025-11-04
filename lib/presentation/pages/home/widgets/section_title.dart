@@ -1,5 +1,6 @@
 // lib/presentation/pages/home/widgets/section_title.dart
 import 'package:flutter/material.dart';
+import '../../../../config/theme.dart';
 
 class SectionTitle extends StatelessWidget {
   final String title;
@@ -27,10 +28,12 @@ class SectionTitle extends StatelessWidget {
           ),
           TextButton(
             onPressed: onViewAll ?? () {},
-            child: const Text(
-              'View All',
-              style: TextStyle(
-                color: Color(0xFFFF7A2E),
+            child: ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+              child: const Text(
+                'View All',
+                style: TextStyle(color: Colors.white),
               ),
             ),
           ),

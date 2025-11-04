@@ -85,7 +85,7 @@ class _ProductImageSliderState extends State<ProductImageSlider> {
                                 ? loadingProgress.cumulativeBytesLoaded /
                                     loadingProgress.expectedTotalBytes!
                                 : null,
-                            color: const Color(0xFFFF7A2E),
+                            color: const Color(0xFFFEAF4E),
                           ),
                         );
                       },
@@ -114,7 +114,7 @@ class _ProductImageSliderState extends State<ProductImageSlider> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: _currentImageIndex == entry.key
-                            ? const Color(0xFFFF7A2E)
+                            ? const Color(0xFFFEAF4E)
                             : Colors.grey.withOpacity(0.5),
                       ),
                     );
@@ -145,7 +145,7 @@ class _ProductImageSliderState extends State<ProductImageSlider> {
                           decoration: BoxDecoration(
                             border: Border.all(
                               color: _currentImageIndex == index
-                                  ? const Color(0xFFFF7A2E)
+                                  ? const Color(0xFFFEAF4E)
                                   : Colors.grey.shade300,
                               width: 2,
                             ),

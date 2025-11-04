@@ -1,4 +1,5 @@
 // lib/presentation/pages/profile/my_addresses_page.dart
+import 'package:anu_app/config/theme.dart';
 import 'package:anu_app/main.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -45,7 +46,7 @@ class _MyAddressesPageState extends State<MyAddressesPage> {
             if (addressProvider.isLoading) {
               return const Center(
                 child: CircularProgressIndicator(
-                  color: Color(0xFFFF7A2E),
+                  color: AppTheme.primaryColor,
                 ),
               );
             }
@@ -64,10 +65,19 @@ class _MyAddressesPageState extends State<MyAddressesPage> {
       ),
       bottomNavigationBar:
           const CustomBottomNavBar(currentIndex: 4), // Profile tab
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _navigateToAddAddress(),
-        backgroundColor: const Color(0xFFFF7A2E),
-        child: const Icon(Icons.add),
+      floatingActionButton: InkWell(
+        onTap: () => _navigateToAddAddress(),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: AppTheme.primaryGradient,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.add,
+            color: Colors.white,
+          ),
+        ),
       ),
     );
   }
@@ -98,13 +108,23 @@ class _MyAddressesPageState extends State<MyAddressesPage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _loadAddresses,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF7A2E),
-                foregroundColor: Colors.white,
+            InkWell(
+              onTap: _loadAddresses,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Try Again',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-              child: const Text('Try Again'),
             ),
           ],
         ),
@@ -144,19 +164,34 @@ class _MyAddressesPageState extends State<MyAddressesPage> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed: () => _navigateToAddAddress(),
-                icon: const Icon(Icons.add),
-                label: const Text('Add New Address'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF7A2E),
-                  foregroundColor: Colors.white,
+              InkWell(
+                onTap: () => _navigateToAddAddress(),
+                child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
                     vertical: 12,
                   ),
-                  shape: RoundedRectangleBorder(
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.primaryGradient,
                     borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.add,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Add New Address',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -301,7 +336,7 @@ class _MyAddressesPageState extends State<MyAddressesPage> {
           content: Row(
             children: [
               const CircularProgressIndicator(
-                color: Color(0xFFFF7A2E),
+                color: AppTheme.primaryColor,
               ),
               const SizedBox(width: 16),
               Text(message),

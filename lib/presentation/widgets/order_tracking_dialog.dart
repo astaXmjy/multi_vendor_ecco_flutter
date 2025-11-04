@@ -73,7 +73,7 @@ class _OrderTrackingDialogState extends State<OrderTrackingDialog> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
-                color: Color(0xFFFF7A2E),
+                color: Color(0xFFFEAF4E),
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
@@ -128,7 +128,7 @@ class _OrderTrackingDialogState extends State<OrderTrackingDialog> {
         padding: EdgeInsets.all(32),
         child: Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF7A2E)),
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFEAF4E)),
           ),
         ),
       );
@@ -155,7 +155,7 @@ class _OrderTrackingDialogState extends State<OrderTrackingDialog> {
             ElevatedButton(
               onPressed: _loadTrackingData,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF7A2E),
+                backgroundColor: const Color(0xFFFEAF4E),
                 foregroundColor: Colors.white,
               ),
               child: const Text('Retry'),
@@ -463,7 +463,7 @@ class _OrderTrackingDialogState extends State<OrderTrackingDialog> {
                       height: 20,
                       decoration: BoxDecoration(
                         color: isCompleted || isCurrent
-                            ? const Color(0xFFFF7A2E)
+                            ? const Color(0xFFFEAF4E)
                             : Colors.grey[300],
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
@@ -481,7 +481,7 @@ class _OrderTrackingDialogState extends State<OrderTrackingDialog> {
                         width: 2,
                         height: 40,
                         color: isCompleted
-                            ? const Color(0xFFFF7A2E)
+                            ? const Color(0xFFFEAF4E)
                             : Colors.grey[300],
                       ),
                   ],
@@ -510,7 +510,7 @@ class _OrderTrackingDialogState extends State<OrderTrackingDialog> {
                             'Current Status',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Color(0xFFFF7A2E),
+                              color: Color(0xFFFEAF4E),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -554,7 +554,7 @@ class _OrderTrackingDialogState extends State<OrderTrackingDialog> {
         return Colors.blue;
       case 'processing':
       case 'confirmed':
-        return const Color(0xFFFF7A2E);
+        return const Color(0xFFFEAF4E);
       case 'cancelled':
       case 'failed':
         return Colors.red;

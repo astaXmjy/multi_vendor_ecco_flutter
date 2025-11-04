@@ -7,6 +7,7 @@ import 'dart:developer' as developer;
 import '../../../api/services/auth_service.dart';
 import '../../../providers/user_provider.dart';
 import 'otp_verification_page.dart';
+import 'package:anu_app/config/theme.dart';
 
 class CreateAccountPage extends StatefulWidget {
   const CreateAccountPage({Key? key}) : super(key: key);
@@ -57,9 +58,9 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFFFF7A2E), // Header background
-              onPrimary: Colors.white, // Header text
-              onSurface: Colors.black, // Calendar text
+              primary: Color(0xFFF96A4C), // Middle gradient color
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
             ),
           ),
           child: child!,
@@ -234,14 +235,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                             topLeft: Radius.circular(16),
                             topRight: Radius.circular(16),
                           ),
-                          gradient: LinearGradient(
-                            colors: [
-                              Color(0xFFFF7A2E), // Orange
-                              Color(0xFFFF4947), // Coral
-                            ],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
+                          gradient: AppTheme.primaryGradient,
                         ),
                         child: const Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -556,26 +550,42 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                               onPressed:
                                   _isLoading ? null : _handleRegistration,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFF7A2E),
+                                padding: EdgeInsets.zero,
                                 foregroundColor: Colors.white,
                                 minimumSize: const Size(double.infinity, 50),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Text(
-                                      'Create Account',
-                                      style: TextStyle(fontSize: 16),
-                                    ),
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  gradient: _isLoading
+                                      ? null
+                                      : AppTheme.primaryGradient,
+                                  color: _isLoading ? Colors.grey : null,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  constraints: const BoxConstraints(
+                                    minWidth: double.infinity,
+                                    minHeight: 50,
+                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Create Account',
+                                          style: TextStyle(fontSize: 16),
+                                        ),
+                                ),
+                              ),
                             ),
 
                             const SizedBox(height: 16),
@@ -593,11 +603,19 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                                     // Navigate to login screen
                                     context.go('/login');
                                   },
-                                  child: const Text(
-                                    'Log in',
-                                    style: TextStyle(
-                                      color: Color(0xFFFF7A2E),
-                                      fontWeight: FontWeight.w500,
+                                  child: ShaderMask(
+                                    shaderCallback: (bounds) =>
+                                        AppTheme.primaryGradient.createShader(
+                                      Rect.fromLTWH(
+                                          0, 0, bounds.width, bounds.height),
+                                    ),
+                                    child: const Text(
+                                      'Log in',
+                                      style: TextStyle(
+                                        color: Colors
+                                            .white, // This will be masked by gradient
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -677,7 +695,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFFF7A2E)),
+          borderSide: const BorderSide(color: Color(0xFFF96A4C)),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
